@@ -1,0 +1,632 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="https://alva-ai-static.b-cdn.net/design-system/v1/design-system.css" />
+    <script src="https://unpkg.com/@alva-ai/toolkit/dist/browser.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+    <style>
+      html {
+        height: 100%;
+        overflow: hidden;
+      }
+      body {
+        height: 100%;
+        margin: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        background: var(--b0-page);
+        color: var(--text-n9);
+      }
+      * {
+        box-sizing: border-box;
+        letter-spacing: 0;
+      }
+      .playbook-container {
+        width: 100%;
+        margin: 0 auto;
+        padding: var(--spacing-s) var(--spacing-xxl) var(--spacing-xxxxl);
+      }
+      .status-strip,
+      .pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--spacing-xs);
+      }
+      .status-strip {
+        margin-bottom: var(--spacing-xl);
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        padding: var(--spacing-xxxs) var(--spacing-xs);
+        border-radius: var(--radius-ct-s);
+        background: var(--grey-g01);
+        color: var(--text-n7);
+        font-size: 12px;
+        line-height: 20px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(8, minmax(0, 1fr));
+        gap: var(--spacing-xl);
+        align-items: stretch;
+      }
+      .col-2 { grid-column: span 2; }
+      .col-4 { grid-column: span 4; }
+      .col-8 { grid-column: span 8; }
+      .panel {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+      .panel-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--spacing-m);
+        margin-bottom: var(--spacing-m);
+      }
+      .panel-title-text {
+        font-size: 16px;
+        line-height: 26px;
+        font-weight: 400;
+        color: var(--text-n9);
+      }
+      .panel-meta {
+        font-size: 12px;
+        line-height: 20px;
+        color: var(--text-n5);
+        white-space: nowrap;
+      }
+      .metric-box,
+      .surface {
+        background: var(--grey-g01);
+        border-radius: var(--radius-ct-s);
+      }
+      .metric-box {
+        min-height: 128px;
+        padding: var(--spacing-l);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+      .metric-label {
+        font-size: 12px;
+        line-height: 20px;
+        color: var(--text-n7);
+      }
+      .metric-value {
+        margin-top: var(--spacing-xxs);
+        font-size: 28px;
+        line-height: 36px;
+        font-weight: 400;
+        color: var(--text-n9);
+      }
+      .metric-caption {
+        margin-top: var(--spacing-xxs);
+        font-size: 12px;
+        line-height: 20px;
+        color: var(--text-n5);
+      }
+      .is-up { color: var(--main-m3); }
+      .is-down { color: var(--main-m4); }
+      .is-neutral { color: var(--text-n9); }
+      .signal-list {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: var(--spacing-m);
+      }
+      .signal-card {
+        min-width: 0;
+        padding: var(--spacing-m);
+        border-radius: var(--radius-ct-s);
+        background: var(--grey-g01);
+        text-decoration: none;
+        color: inherit;
+      }
+      .signal-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--spacing-xs);
+        margin-bottom: var(--spacing-xs);
+      }
+      .signal-symbol {
+        font-size: 13px;
+        line-height: 20px;
+        color: var(--text-n7);
+      }
+      .severity {
+        padding: 2px 6px;
+        border-radius: var(--radius-ct-min);
+        font-size: 11px;
+        line-height: 16px;
+        text-transform: uppercase;
+        background: var(--line-l05);
+        color: var(--text-n7);
+      }
+      .severity.high {
+        color: var(--main-m4);
+      }
+      .severity.medium {
+        color: var(--main-m1);
+      }
+      .signal-title {
+        font-size: 15px;
+        line-height: 24px;
+        color: var(--text-n9);
+        margin-bottom: var(--spacing-xxs);
+      }
+      .signal-reason,
+      .detail-text {
+        font-size: 13px;
+        line-height: 21px;
+        color: var(--text-n7);
+      }
+      .chart-body {
+        flex: 1;
+        padding: var(--spacing-m);
+        position: relative;
+        background-image: radial-gradient(circle, rgba(0, 0, 0, 0.16) 0.6px, transparent 0.6px);
+        background-size: 3px 3px;
+      }
+      .chart-container {
+        width: 100%;
+        height: 320px;
+        min-height: 180px;
+      }
+      .table-card {
+        width: 100%;
+        overflow-x: auto;
+      }
+      .table-row {
+        display: grid;
+        grid-template-columns: 86px 1.4fr 82px 72px 72px 72px 82px 86px 90px 86px;
+        gap: var(--spacing-m);
+        min-width: 920px;
+        border-bottom: 0.5px solid var(--line-l12);
+      }
+      .table-row:last-child {
+        border-bottom: none;
+      }
+      .table-cell {
+        padding: 12px 0;
+        font-size: 13px;
+        line-height: 21px;
+        color: var(--text-n9);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .table-header .table-cell {
+        padding-top: 0;
+        color: var(--text-n7);
+      }
+      .detail-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--spacing-m);
+      }
+      .detail-card,
+      .alert-card {
+        padding: var(--spacing-m);
+        border-radius: var(--radius-ct-s);
+        background: var(--grey-g01);
+      }
+      .error-box {
+        display: none;
+        margin-bottom: var(--spacing-xl);
+        padding: var(--spacing-m);
+        border-radius: var(--radius-ct-s);
+        background: var(--grey-g01);
+        color: var(--main-m4);
+        font-size: 14px;
+        line-height: 22px;
+      }
+      @media (max-width: 900px) {
+        .playbook-container {
+          padding: var(--spacing-m);
+        }
+        .grid {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: var(--spacing-l);
+        }
+        .col-2,
+        .col-4,
+        .col-8 {
+          grid-column: span 4;
+        }
+        .signal-list,
+        .detail-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="playbook-container">
+      <div class="status-strip" id="statusStrip">
+        <span class="pill">Loading feed data</span>
+      </div>
+      <div class="error-box" id="errorBox"></div>
+
+      <section class="grid" aria-label="Portfolio watch">
+        <div class="panel col-2">
+          <div class="panel-title"><span class="panel-title-text">State</span></div>
+          <div class="metric-box">
+            <div>
+              <div class="metric-label">Portfolio attention</div>
+              <div class="metric-value" id="kpiState">...</div>
+            </div>
+            <div class="metric-caption" id="kpiSignals">...</div>
+          </div>
+        </div>
+        <div class="panel col-2">
+          <div class="panel-title"><span class="panel-title-text">1D</span></div>
+          <div class="metric-box">
+            <div>
+              <div class="metric-label">Weighted move</div>
+              <div class="metric-value" id="kpi1d">...</div>
+            </div>
+            <div class="metric-caption" id="kpiBenchmark">...</div>
+          </div>
+        </div>
+        <div class="panel col-2">
+          <div class="panel-title"><span class="panel-title-text">1M</span></div>
+          <div class="metric-box">
+            <div>
+              <div class="metric-label">Weighted move</div>
+              <div class="metric-value" id="kpi1m">...</div>
+            </div>
+            <div class="metric-caption">Latest complete bars</div>
+          </div>
+        </div>
+        <div class="panel col-2">
+          <div class="panel-title"><span class="panel-title-text">Universe</span></div>
+          <div class="metric-box">
+            <div>
+              <div class="metric-label">Working symbols</div>
+              <div class="metric-value" id="kpiCount">...</div>
+            </div>
+            <div class="metric-caption" id="kpiMissing">...</div>
+          </div>
+        </div>
+
+        <div class="panel col-8" id="signals">
+          <div class="panel-title">
+            <span class="panel-title-text">Signal Queue</span>
+            <span class="panel-meta" id="signalStamp"></span>
+          </div>
+          <div class="signal-list" id="signalList"></div>
+        </div>
+
+        <div class="panel col-4">
+          <div class="panel-title">
+            <span class="panel-title-text">Portfolio Path</span>
+            <span class="panel-meta" id="equityStamp"></span>
+          </div>
+          <div class="chart-body"><div id="equityChart" class="chart-container"></div></div>
+        </div>
+        <div class="panel col-4">
+          <div class="panel-title">
+            <span class="panel-title-text">Constituent Paths</span>
+            <span class="panel-meta" id="priceStamp"></span>
+          </div>
+          <div class="chart-body"><div id="priceChart" class="chart-container"></div></div>
+        </div>
+
+        <div class="panel col-8">
+          <div class="panel-title">
+            <span class="panel-title-text">Holdings State</span>
+            <span class="panel-meta" id="tableStamp"></span>
+          </div>
+          <div class="table-card" id="assetTable"></div>
+        </div>
+
+        <div class="panel col-8">
+          <div class="panel-title"><span class="panel-title-text">Signal Detail</span></div>
+          <div class="detail-grid" id="signalDetails"></div>
+        </div>
+
+        <div class="panel col-8">
+          <div class="panel-title"><span class="panel-title-text">Alert History</span></div>
+          <div class="detail-grid" id="alertHistory"></div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const OWNER_USERNAME = "REPLACE_OWNER_USERNAME";
+      const FEED_NAME = "REPLACE_FEED_NAME";
+      const FEED_MAJOR = "v1";
+      function feedPath(group, output, suffix) {
+        return `/alva/home/${OWNER_USERNAME}/feeds/${FEED_NAME}/${FEED_MAJOR}/data/${group}/${output}/${suffix}`;
+      }
+      const PATHS = {
+        summary: feedPath("portfolio", "summary", "@last/1"),
+        equity: feedPath("portfolio", "equity", "@last/260"),
+        assets: feedPath("watch", "assets", "@last/1"),
+        prices: feedPath("history", "prices", "@last/260"),
+        signals: feedPath("signals", "events", "@last/1"),
+        alerts: feedPath("alerts", "events", "@last/5"),
+      };
+      const PALETTE = ["#49a3a6", "#e05f55", "#5f75c9", "#7d9f55", "#b86aa8", "#d39b42", "#627c91"];
+      const FONT = "'Delight', -apple-system, 'OPPO Sans 4.0', BlinkMacSystemFont, sans-serif";
+      let charts = [];
+
+      function createAlvaClientConfig() {
+        const params = new URLSearchParams(window.location.search);
+        const pbsvToken = window.alva?.udf?.getViewerToken?.();
+        const apiOrigin = params.get("api_origin");
+        return {
+          ...(pbsvToken ? { pbsvToken } : {}),
+          ...(apiOrigin ? { baseUrl: apiOrigin.replace(/\/$/, "") } : {}),
+        };
+      }
+      function createAlvaClient() {
+        return new AlvaToolkit.AlvaClient(createAlvaClientConfig());
+      }
+      async function readAlfsJson(path) {
+        const value = await createAlvaClient().fs.read({ path });
+        if (typeof value === "string") return JSON.parse(value);
+        return value;
+      }
+      function flattenRows(rows) {
+        if (!Array.isArray(rows)) return [];
+        const out = [];
+        rows.forEach((row) => {
+          if (Array.isArray(row.items)) {
+            row.items.forEach((item) => out.push({ ...item, date: item.date || row.date }));
+          } else {
+            out.push(row);
+          }
+        });
+        return out;
+      }
+      function last(rows) {
+        return rows.length ? rows[rows.length - 1] : null;
+      }
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+      function clsFor(value) {
+        if (typeof value !== "number") return "is-neutral";
+        if (value > 0) return "is-up";
+        if (value < 0) return "is-down";
+        return "is-neutral";
+      }
+      function fmtNumber(value, digits) {
+        if (typeof value !== "number" || !Number.isFinite(value)) return "--";
+        return value.toLocaleString("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+      }
+      function fmtPct(value) {
+        if (typeof value !== "number" || !Number.isFinite(value)) return "--";
+        return (value >= 0 ? "+" : "") + fmtNumber(value, 2) + "%";
+      }
+      function fmtMoney(value) {
+        if (typeof value !== "number" || !Number.isFinite(value)) return "--";
+        if (Math.abs(value) >= 1e12) return "$" + fmtNumber(value / 1e12, 2) + "T";
+        if (Math.abs(value) >= 1e9) return "$" + fmtNumber(value / 1e9, 1) + "B";
+        if (Math.abs(value) >= 1e6) return "$" + fmtNumber(value / 1e6, 1) + "M";
+        return "$" + fmtNumber(value, 0);
+      }
+      function fmtDate(value) {
+        if (!value) return "--";
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return String(value).slice(0, 10);
+        return date.toLocaleString("en-US", { hour12: false, month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+      }
+      function colorFor(symbol, symbols) {
+        return PALETTE[Math.max(0, symbols.indexOf(symbol)) % PALETTE.length];
+      }
+      function setMetric(id, value, className) {
+        const el = document.getElementById(id);
+        el.textContent = value;
+        el.classList.remove("is-up", "is-down", "is-neutral");
+        el.classList.add(className || "is-neutral");
+      }
+
+      function renderSummary(summary) {
+        document.getElementById("statusStrip").innerHTML =
+          `<span class="pill">${escapeHtml(summary.universe || "")}</span>` +
+          `<span class="pill">${escapeHtml(summary.weighting || "")}</span>` +
+          `<span class="pill">As of ${escapeHtml(fmtDate(summary.asOf))}</span>`;
+        setMetric("kpiState", summary.riskState || "--", summary.riskState === "Alert" ? "is-down" : "is-neutral");
+        setMetric("kpi1d", fmtPct(summary.return1d), clsFor(summary.return1d));
+        setMetric("kpi1m", fmtPct(summary.return1m), clsFor(summary.return1m));
+        setMetric("kpiCount", fmtNumber(summary.tickerCount, 0), "is-neutral");
+        document.getElementById("kpiSignals").textContent = `${summary.highSignalCount || 0} high · ${summary.attentionCount || 0} total`;
+        document.getElementById("kpiBenchmark").textContent = summary.benchmark ? `Benchmark ${summary.benchmark}` : "No benchmark";
+        document.getElementById("kpiMissing").textContent = summary.missingSymbols ? `Missing: ${summary.missingSymbols}` : "No missing symbols";
+      }
+
+      function renderSignals(signals) {
+        const sorted = signals.slice().sort((a, b) => (b.score || 0) - (a.score || 0)).slice(0, 6);
+        document.getElementById("signalStamp").textContent = sorted.length ? fmtDate(sorted[0].asOf) : "";
+        document.getElementById("signalList").innerHTML = sorted.map((row) => {
+          const anchor = row.deepLinkAnchor || `signal-${row.signalId}`;
+          return `<a class="signal-card" href="#${escapeHtml(anchor)}">` +
+            `<div class="signal-top"><span class="signal-symbol">${escapeHtml(row.symbol)}</span><span class="severity ${escapeHtml(row.severity)}">${escapeHtml(row.severity)}</span></div>` +
+            `<div class="signal-title">${escapeHtml(row.title)}</div>` +
+            `<div class="signal-reason">${escapeHtml(row.reason)}</div>` +
+            `<div class="metric-caption">Impact ${fmtPct(row.portfolioImpactPct)} · Score ${fmtNumber(row.score, 0)}</div>` +
+            `</a>`;
+        }).join("");
+        document.getElementById("signalDetails").innerHTML = sorted.map((row) => {
+          const anchor = row.deepLinkAnchor || `signal-${row.signalId}`;
+          return `<article class="detail-card" id="${escapeHtml(anchor)}">` +
+            `<div class="signal-top"><span class="signal-symbol">${escapeHtml(row.symbol)}</span><span class="severity ${escapeHtml(row.severity)}">${escapeHtml(row.severity)}</span></div>` +
+            `<div class="signal-title">${escapeHtml(row.title)}</div>` +
+            `<div class="detail-text">${escapeHtml(row.reason)}</div>` +
+            `<div class="detail-text">${escapeHtml(row.evidence)}</div>` +
+            `<div class="metric-caption">Trigger ${escapeHtml(row.triggerType)} · As of ${escapeHtml(fmtDate(row.asOf))}</div>` +
+            `</article>`;
+        }).join("");
+      }
+
+      function renderAlerts(alerts) {
+        const sorted = alerts.slice().sort((a, b) => (b.date || 0) - (a.date || 0)).slice(0, 4);
+        document.getElementById("alertHistory").innerHTML = sorted.map((row) => {
+          return `<article class="alert-card">` +
+            `<div class="signal-top"><span class="signal-symbol">${escapeHtml(row.symbol)}</span><span class="severity ${escapeHtml(row.severity)}">${escapeHtml(row.deliveryState || row.severity)}</span></div>` +
+            `<div class="signal-title">${escapeHtml(row.title)}</div>` +
+            `<div class="detail-text">${escapeHtml(row.body)}</div>` +
+            `<div class="metric-caption">Trigger ${escapeHtml(row.triggerType)} · As of ${escapeHtml(fmtDate(row.asOf))}</div>` +
+            `</article>`;
+        }).join("");
+      }
+
+      const AX = {
+        axisLine: { show: false },
+        axisTick: { show: false },
+        axisLabel: { fontSize: 10, color: "rgba(0,0,0,0.7)", fontFamily: FONT, margin: 8 },
+        splitLine: { show: false },
+      };
+      const GRID = { top: 8, right: 8, bottom: 8, left: 8, containLabel: true };
+      const TT = {
+        trigger: "axis",
+        backgroundColor: "rgba(255,255,255,0.96)",
+        borderColor: "rgba(0,0,0,0.08)",
+        borderWidth: 1,
+        borderRadius: 6,
+        padding: 12,
+        textStyle: { fontFamily: FONT, fontSize: 12, fontWeight: 400, color: "rgba(0,0,0,0.9)" },
+        axisPointer: { type: "line", lineStyle: { color: "rgba(0,0,0,0.1)", width: 1 } },
+        extraCssText: "box-shadow:none;",
+      };
+      function initChart(el, option) {
+        requestAnimationFrame(() => {
+          const chart = echarts.init(el);
+          chart.setOption(option);
+          charts.push(chart);
+          requestAnimationFrame(() => chart.resize());
+        });
+      }
+      function renderEquityChart(rows) {
+        document.getElementById("equityStamp").textContent = rows.length ? fmtDate(last(rows).date) : "";
+        const series = [{
+          name: "Portfolio",
+          type: "line",
+          data: rows.map((row) => [row.date, row.portfolioIndex]),
+          showSymbol: false,
+          lineStyle: { width: 1, color: "#49a3a6" },
+          itemStyle: { color: "#49a3a6" },
+        }];
+        if (rows.some((row) => typeof row.benchmarkIndex === "number")) {
+          series.push({
+            name: "Benchmark",
+            type: "line",
+            data: rows.filter((row) => typeof row.benchmarkIndex === "number").map((row) => [row.date, row.benchmarkIndex]),
+            showSymbol: false,
+            lineStyle: { width: 1, color: "#7a7f87" },
+            itemStyle: { color: "#7a7f87" },
+          });
+        }
+        initChart(document.getElementById("equityChart"), {
+          animation: false,
+          grid: GRID,
+          tooltip: TT,
+          xAxis: { type: "time", boundaryGap: false, ...AX },
+          yAxis: { type: "value", scale: true, ...AX },
+          series,
+        });
+      }
+      function renderPriceChart(rows) {
+        const symbols = Array.from(new Set(rows.map((row) => row.symbol))).sort();
+        document.getElementById("priceStamp").textContent = rows.length ? fmtDate(last(rows).date) : "";
+        initChart(document.getElementById("priceChart"), {
+          animation: false,
+          grid: GRID,
+          tooltip: TT,
+          xAxis: { type: "time", boundaryGap: false, ...AX },
+          yAxis: { type: "value", scale: true, ...AX },
+          series: symbols.map((symbol) => ({
+            name: symbol,
+            type: "line",
+            data: rows.filter((row) => row.symbol === symbol).map((row) => [row.date, row.normalized]),
+            showSymbol: false,
+            lineStyle: { width: 1, color: colorFor(symbol, symbols) },
+            itemStyle: { color: colorFor(symbol, symbols) },
+          })),
+        });
+      }
+      function cell(value, className) {
+        return `<div class="table-cell ${className || ""}">${escapeHtml(value)}</div>`;
+      }
+      function renderTable(assets) {
+        document.getElementById("tableStamp").textContent = assets.length ? fmtDate(assets[0].asOf) : "";
+        const sorted = assets.slice().sort((a, b) => (b.attentionScore || 0) - (a.attentionScore || 0));
+        document.getElementById("assetTable").innerHTML =
+          `<div class="table-row table-header">` +
+          cell("Symbol") + cell("Company") + cell("Weight") + cell("1D") + cell("1M") +
+          cell("Rel 1D") + cell("RSI") + cell("MA20") + cell("Mkt Cap") + cell("Severity") +
+          `</div>` +
+          sorted.map((row) =>
+            `<div class="table-row">` +
+            cell(row.symbol) +
+            cell(row.name || row.symbol) +
+            cell(fmtPct(row.watchWeightPct)) +
+            cell(fmtPct(row.return1d), clsFor(row.return1d)) +
+            cell(fmtPct(row.return1m), clsFor(row.return1m)) +
+            cell(fmtPct(row.relativeReturn1d), clsFor(row.relativeReturn1d)) +
+            cell(fmtNumber(row.rsi14, 1)) +
+            cell(fmtPct(row.ma20DistancePct), clsFor(row.ma20DistancePct)) +
+            cell(fmtMoney(row.marketCap)) +
+            cell(`${row.severity || "--"} · ${fmtNumber(row.attentionScore, 0)}`) +
+            `</div>`
+          ).join("");
+      }
+
+      async function init() {
+        const [summaryRaw, equityRaw, assetRaw, priceRaw, signalRaw, alertRaw] = await Promise.all([
+          readAlfsJson(PATHS.summary),
+          readAlfsJson(PATHS.equity),
+          readAlfsJson(PATHS.assets),
+          readAlfsJson(PATHS.prices),
+          readAlfsJson(PATHS.signals),
+          readAlfsJson(PATHS.alerts),
+        ]);
+        const summary = last(flattenRows(summaryRaw));
+        const equity = flattenRows(equityRaw);
+        const assets = flattenRows(assetRaw);
+        const prices = flattenRows(priceRaw);
+        const signals = flattenRows(signalRaw);
+        const alerts = flattenRows(alertRaw);
+        if (!summary || !equity.length || !assets.length || !prices.length) {
+          throw new Error("Feed output is empty");
+        }
+        renderSummary(summary);
+        renderSignals(signals);
+        renderAlerts(alerts);
+        renderEquityChart(equity);
+        renderPriceChart(prices);
+        renderTable(assets);
+        if (window.location.hash) {
+          requestAnimationFrame(() => {
+            const target = document.querySelector(window.location.hash);
+            if (target) target.scrollIntoView({ block: "start" });
+          });
+        }
+      }
+
+      window.addEventListener("resize", () => {
+        requestAnimationFrame(() => charts.forEach((chart) => chart.resize()));
+      });
+      init().catch((error) => {
+        const box = document.getElementById("errorBox");
+        box.style.display = "block";
+        box.textContent = "Data read failed: " + error.message;
+        document.getElementById("statusStrip").innerHTML = '<span class="pill">Read failed</span>';
+      });
+    </script>
+  </body>
+</html>

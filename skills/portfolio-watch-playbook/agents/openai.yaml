@@ -1,0 +1,4 @@
+interface:
+  display_name: "Portfolio Watch Playbook"
+  short_description: "Generate feed-backed portfolio watch Playbooks with ranked signals and quiet alerts."
+  default_prompt: "Build a Portfolio Watch Playbook for MSFT, AMZN, and GOOGL. Use equal weights if I do not provide holdings, and alert me only on material high-severity signals."

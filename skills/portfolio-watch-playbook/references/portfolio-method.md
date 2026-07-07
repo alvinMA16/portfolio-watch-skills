@@ -1,0 +1,81 @@
+# Portfolio Method
+
+Use this method to turn an arbitrary user watchlist or portfolio into an
+attention-triage Playbook. The goal is not to recommend trades; the goal is to
+show which holdings deserve attention now, why, and whether the user should be
+interrupted.
+
+## Inputs
+
+- Required: ticker list, watchlist, holdings, or connected-account portfolio.
+- Optional: weights, benchmark, market, cadence, alert sensitivity, cost basis,
+  and thesis notes.
+- Default v1 market: US equities.
+- Default weights: user-provided weights if present; otherwise equal-weight
+  watch weights.
+
+## Attention Model
+
+Rank signals by five concepts:
+
+1. **Abnormality** - Is the move unusual for this asset relative to its own
+   recent behavior, benchmark, sector, or peer context?
+2. **Portfolio relevance** - Does the move matter to the user's portfolio
+   exposure? Portfolio impact must dominate raw price move size.
+3. **Explainability** - Can the Playbook state a clear reason and evidence path
+   for why this deserves attention?
+4. **Freshness** - Is the signal based on current data for the configured
+   cadence?
+5. **Novelty** - Has the user already been alerted to the same issue recently?
+
+Use exact scoring weights as implementation details. The required ranking
+principle is:
+
+`attention = abnormality + portfolio relevance + explainability + freshness - repeated noise`
+
+Portfolio relevance and abnormality must dominate ranking. News, options,
+social, macro, and analyst catalysts may boost severity when sourced, but they
+must not replace structured market evidence.
+
+## Watched Dimensions
+
+Required v1 dimensions:
+
+- Price action: latest close, 1D, 1W, 1M return, normalized path.
+- Relative performance: return versus the chosen benchmark when available.
+- Volatility / noise: recent median absolute daily move or equivalent baseline.
+- Volume: today's volume versus recent median volume when available.
+- Trend: MA20, MA60, close-vs-MA20 distance, trend cross.
+- Stretch: RSI 14 overbought / oversold state.
+- Portfolio impact: ticker return multiplied by watch or holding weight.
+- Context: company name, sector, industry, market cap, trailing P/E when
+  available.
+
+Optional dimensions when coverage is verified:
+
+- News / filings / earnings / ratings as catalysts.
+- Options activity as a booster.
+- Twitter/X or social signals as a booster.
+- Macro data as portfolio-level context.
+
+## Severity Guidance
+
+- **High**: material portfolio impact, abnormal move, fresh data, clear reason,
+  and no recent duplicate. Eligible for push.
+- **Medium**: noteworthy but missing one high-severity gate. Show in Playbook,
+  do not push.
+- **Low**: context only. Show in holdings/detail views, do not push.
+
+Never rank only by largest percentage move. A smaller move in a large weight
+can outrank a larger move in a small weight. A volatile stock's ordinary move
+should not outrank a quiet stock's true anomaly.
+
+## Failure Behavior
+
+- If one or more symbols fail and the failure rate is <= 20%, continue with the
+  working symbols and document the missing symbols in README blind spots.
+- If more than 20% fail, stop and request corrected symbols or BYOD.
+- If a metric needed for one signal type is missing, omit that signal type for
+  the affected asset and lower confidence. Do not invent baselines.
+- Do not fabricate prices, metrics, weights, company names, signal events, or
+  alert history.
