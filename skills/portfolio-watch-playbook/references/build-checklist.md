@@ -36,9 +36,10 @@ separate local checkout of the official Alva Skill.
   `feed-lifecycle.md`, and `deployment.md`.
 - Build outputs from `data-contract.md`: `portfolio/summary`,
   `portfolio/equity`, `watch/assets`, `history/prices`, `signals/events`,
-  `alerts/events`, and `notify/message`.
+  `alerts/events`, `alerts/decision`, and `notify/message`.
 - Run the exact ALFS script with `alva run --entry-path ...` after every
-  meaningful change.
+  meaningful change. Do not pass `initialConfirmation` during pre-subscription
+  test runs; that mode is reserved for the first subscribed automation run.
 - Grant public read on the feed root when the Playbook is public.
 - Deploy with `alva deploy create`; use `--push-notify` or
   `alva deploy update --id <id> --push-notify` after `notify/message` exists.
@@ -50,7 +51,9 @@ separate local checkout of the official Alva Skill.
 - Read `alva-platform/playbook-creation.md`, `design.md`,
   `design-widgets.md`, and `user-facing-prose.md`.
 - Follow `ui-contract.md`: overview, signal queue, signal detail, holdings,
-  charts, and alert history.
+  charts, alert decision, and alert history.
+- The first viewport must show the alert decision in plain language: whether a
+  notification was sent, why, and what to inspect next.
 - HTML must use `AlvaToolkit.AlvaClient` for runtime reads.
 - Write HTML and README to `~/playbooks/<name>/`.
 - Draft with `alva release playbook-draft`.
@@ -64,9 +67,21 @@ separate local checkout of the official Alva Skill.
 - Read `alert-contract.md`.
 - Confirm `notify/message/@last/1` is fresh and contains either a real message
   or `<|SKIP_NOTIFICATION|>`.
+- Confirm `alerts/decision/@last/1` is fresh and explains the current
+  notification decision.
 - Subscribe with:
   - `alva subscriptions subscribe-playbook --username <owner> --name <playbook>`
   - or `alva subscriptions subscribe-feed --username <owner> --name <feed>`
+- For the first successful subscription, verify delivery with a one-time setup
+  confirmation:
+  - Temporarily update the deployed automation args to
+    `{"initialConfirmation":true}`.
+  - Trigger the deployed automation once and poll until it completes.
+  - Confirm `notification-history` shows a sent setup confirmation, or a real
+    high-severity market alert if one fired on that run.
+  - Clear the deployed automation args back to `{}` after the confirmation run.
+  - Confirm a later quiet run writes `<|SKIP_NOTIFICATION|>` and does not send
+    another setup confirmation.
 - Verify with:
   - `alva subscriptions list --first 200`
   - `alva notification-history list-playbook --username <owner> --name <playbook> --first 5`

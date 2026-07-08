@@ -5,6 +5,10 @@ attention-triage Playbook. The goal is not to recommend trades; the goal is to
 show which holdings deserve attention now, why, and whether the user should be
 interrupted.
 
+The product output is a decision, not a score report. Scores, severity bands,
+and indicators are implementation details that support a plain-language answer:
+notify, watch quietly, or no action.
+
 ## Inputs
 
 - Required: ticker list, watchlist, holdings, or connected-account portfolio.
@@ -69,6 +73,18 @@ Optional dimensions when coverage is verified:
 Never rank only by largest percentage move. A smaller move in a large weight
 can outrank a larger move in a small weight. A volatile stock's ordinary move
 should not outrank a quiet stock's true anomaly.
+
+## Decision Guidance
+
+Every run must produce one user-facing decision:
+
+- **Sent**: a fresh, non-duplicate high signal triggered a notification.
+- **Watch**: the top signal is medium severity or close to the alert bar, but
+  not worth interrupting the user.
+- **Quiet**: no material signal, or a high signal was suppressed as a duplicate.
+
+The decision should say what happened, why it did or did not clear the alert
+bar, and what the user should do next.
 
 ## Failure Behavior
 

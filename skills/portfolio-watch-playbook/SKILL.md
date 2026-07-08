@@ -1,14 +1,15 @@
 ---
 name: portfolio-watch-playbook
-description: Build reusable Alva Portfolio Watch Playbooks from a user's tickers, watchlist, holdings, or connected-account portfolio. Use when the user asks to keep an eye on a portfolio, monitor holdings, watch a basket, or ping/alert/notify them when something material happens. Produces an Alva Playbook with feed-backed data, an attention-ranked interface, scheduled refresh, quiet-by-default alerts, and notification deep links to matching signals.
+description: Build reusable Alva Portfolio Watch Playbooks from a user's tickers, watchlist, holdings, or connected-account portfolio. Use when the user asks to keep an eye on a portfolio, monitor holdings, watch a basket, or ping/alert/notify them when something material happens. Produces an Alva Playbook with feed-backed data, an alert-first decision surface, scheduled refresh, quiet-by-default alerts, and notification deep links to matching signals.
 ---
 
 # Portfolio Watch Playbook
 
 Build a reusable Portfolio Watch Playbook, not a one-off ticker dashboard. Turn
 an incomplete user request into a running Alva workflow that normalizes the
-portfolio, computes attention-ranked signals, renders an inspectable Playbook,
-and pushes only high-confidence alerts that link back to the matching signal.
+portfolio, computes attention-ranked signals, renders an alert-first Playbook
+that explains whether the user should care now, and pushes only high-confidence
+alerts that link back to the matching signal.
 
 ## Build Order
 
@@ -34,6 +35,18 @@ and pushes only high-confidence alerts that link back to the matching signal.
 5. Release only after the feed, Playbook, README, screenshot, and alert
    verification gates pass.
 
+## Product North Star
+
+The first screen must answer in plain language:
+
+1. Was the user notified?
+2. Why was the user notified or not notified?
+3. What, if anything, should the user inspect next?
+
+Do not make users infer this from `Watch`, `Medium`, score numbers, repeated
+quiet rows, or raw indicator tables. Those are drill-down details, not the
+primary experience.
+
 ## Defaults
 
 - Market: US equities unless the user clearly supplies another covered market.
@@ -45,6 +58,9 @@ and pushes only high-confidence alerts that link back to the matching signal.
   data. Do not infer it.
 - Cadence: use an end-of-day market refresh for v1 unless the user asks for
   intraday monitoring and data coverage supports it.
+- Language: follow the user's current language and stable memory preference
+  for visible UI, README, and alert-decision prose. Keep ticker symbols and
+  structured field names unchanged.
 
 ## Hard Constraints
 
@@ -59,6 +75,12 @@ and pushes only high-confidence alerts that link back to the matching signal.
   explicitly asks for that separate capability.
 - Do not send heartbeat alerts. Quiet runs must write the skip sentinel in
   `notify/message`.
+- Do send one explicit setup confirmation after the first successful
+  subscription. Treat it as a one-time delivery-chain confirmation, not a
+  market alert: the message must say the monitor is on, say it is not a market
+  signal, and link to the Playbook. Do not repeat it on later quiet runs.
+- Do not render quiet runs as repeated alert cards. Summarize quiet history as
+  an inspectable state such as "recent runs quiet."
 - If more than 20% of requested symbols fail legitimate lookup, stop and ask for
   corrected symbols or a supported data source.
 

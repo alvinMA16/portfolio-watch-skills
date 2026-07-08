@@ -1,6 +1,7 @@
 "use strict";
 
 const http = require("net/http");
+const env = require("env");
 const secret = require("secret-manager");
 const { Feed, feedPath, makeDoc, num, str } = require("@alva/feed");
 
@@ -11,6 +12,8 @@ const CONFIG = {
   benchmark: "SPY",
   sensitivity: "balanced",
   lookbackDays: 260,
+  duplicateCooldownDays: 7,
+  initialSubscriptionConfirmation: true,
   portfolio: [
     { symbol: "REPLACE_SYMBOL", weight: 1 },
   ],
@@ -118,6 +121,23 @@ feed.def("alerts", {
     str("dedupKey"),
     str("deepLinkAnchor"),
     str("deliveryState"),
+  ]),
+  decision: makeDoc("Alert Decision", "Plain-language notification decision for the current run", [
+    str("notificationState"),
+    str("decisionTitle"),
+    str("decisionBody"),
+    str("topSignalId"),
+    str("topSymbol"),
+    str("topSeverity"),
+    str("quietReason"),
+    str("nextAction"),
+    str("nextTrigger"),
+    num("score"),
+    num("threshold"),
+    num("portfolioImpactPct"),
+    str("asOf"),
+    str("deepLinkAnchor"),
+    num("cooldownDays"),
   ]),
 });
 
@@ -512,8 +532,45 @@ async function buildBenchmark(startSec, endSec) {
   };
 }
 
-function buildAlertRows(signals, nowMs, latestAsOf) {
+function flattenRows(rows) {
+  if (!Array.isArray(rows)) return [];
+  const out = [];
+  rows.forEach((row) => {
+    if (Array.isArray(row.items)) {
+      row.items.forEach((item) => out.push(Object.assign({ date: item.date || row.date }, item)));
+    } else {
+      out.push(row);
+    }
+  });
+  return out;
+}
+
+async function loadPriorAlerts(ctx) {
+  try {
+    return flattenRows(await ctx.self.ts("alerts", "events").last(50));
+  } catch (error) {
+    const message = String(error && error.message ? error.message : error);
+    if (message.indexOf("not found") >= 0 || message.indexOf("does not exist") >= 0 || message.indexOf("No such") >= 0) {
+      return [];
+    }
+    throw error;
+  }
+}
+
+function duplicateKeys(priorAlerts, nowMs) {
+  const cutoff = nowMs - CONFIG.duplicateCooldownDays * 86400 * 1000;
+  const keys = {};
+  priorAlerts.forEach((row) => {
+    if (row && row.dedupKey && row.severity === "high" && row.date >= cutoff && row.deliveryState !== "quiet") {
+      keys[row.dedupKey] = true;
+    }
+  });
+  return keys;
+}
+
+function buildAlertRows(signals, nowMs, latestAsOf, priorAlerts) {
   const high = signals.filter((signal) => signal.severity === "high").sort((a, b) => b.score - a.score);
+  const seen = duplicateKeys(priorAlerts, nowMs);
   if (!high.length) {
     return [{
       date: nowMs,
@@ -530,25 +587,164 @@ function buildAlertRows(signals, nowMs, latestAsOf) {
       deliveryState: "quiet",
     }];
   }
-  return high.map((signal) => ({
-    date: nowMs,
-    signalId: signal.signalId,
-    symbol: signal.symbol,
-    severity: signal.severity,
-    title: signal.title,
-    body: signal.reason + " " + signal.evidence,
-    portfolioImpactPct: signal.portfolioImpactPct,
-    triggerType: signal.triggerType,
-    asOf: signal.asOf,
-    dedupKey: signal.dedupKey,
-    deepLinkAnchor: signal.deepLinkAnchor,
-    deliveryState: "candidate",
-  }));
+  return high.map((signal) => {
+    const duplicate = !!seen[signal.dedupKey];
+    return {
+      date: nowMs,
+      signalId: signal.signalId,
+      symbol: signal.symbol,
+      severity: signal.severity,
+      title: signal.title,
+      body: signal.reason + " " + signal.evidence,
+      portfolioImpactPct: signal.portfolioImpactPct,
+      triggerType: signal.triggerType,
+      asOf: signal.asOf,
+      dedupKey: signal.dedupKey,
+      deepLinkAnchor: signal.deepLinkAnchor,
+      deliveryState: duplicate ? "quiet" : "candidate",
+    };
+  });
 }
 
-function buildNotify(alertRows) {
-  const actionable = alertRows.filter((row) => row.severity === "high");
+function quietReasonFor(top, duplicateHigh) {
+  if (duplicateHigh) return "duplicate";
+  if (!top) return "no_signal";
+  return top.severity === "medium" ? "below_threshold" : "no_signal";
+}
+
+function buildDecision(signals, alertRows, nowMs, latestAsOf, setupConfirmation) {
+  const thresholds = sensitivityThresholds();
+  const sortedSignals = signals.slice().sort((a, b) => b.score - a.score);
+  const top = sortedSignals.length ? sortedSignals[0] : null;
+  const actionable = alertRows.filter((row) => row.severity === "high" && row.deliveryState === "candidate");
+  const duplicateHigh = alertRows.find((row) => row.severity === "high" && row.deliveryState === "quiet");
+  const anchor = actionable.length
+    ? actionable[0].deepLinkAnchor
+    : top
+      ? top.deepLinkAnchor
+      : "signals";
+
+  if (actionable.length) {
+    const alert = actionable[0];
+    return {
+      date: nowMs,
+      notificationState: "sent",
+      decisionTitle: "Ping sent for " + alert.symbol,
+      decisionBody: alert.body,
+      topSignalId: alert.signalId,
+      topSymbol: alert.symbol,
+      topSeverity: alert.severity,
+      quietReason: "",
+      nextAction: "Open " + alert.symbol + " detail.",
+      nextTrigger: "Already cleared the high-severity alert bar.",
+      score: top ? top.score : null,
+      threshold: thresholds.high,
+      portfolioImpactPct: alert.portfolioImpactPct,
+      asOf: alert.asOf,
+      deepLinkAnchor: anchor,
+      cooldownDays: CONFIG.duplicateCooldownDays,
+    };
+  }
+
+  if (setupConfirmation) {
+    return {
+      date: nowMs,
+      notificationState: "setup",
+      decisionTitle: "Setup confirmation sent",
+      decisionBody: "Portfolio Watch is on. This is a one-time delivery confirmation, not a market signal.",
+      topSignalId: top ? top.signalId : "",
+      topSymbol: top ? top.symbol : "PORTFOLIO",
+      topSeverity: top ? top.severity : "quiet",
+      quietReason: quietReasonFor(top, duplicateHigh),
+      nextAction: top ? "Open " + top.symbol + " detail if you want context." : "No action needed.",
+      nextTrigger: "Future pings require score >= " + String(thresholds.high) + " and a non-duplicate high-severity signal.",
+      score: top ? top.score : null,
+      threshold: thresholds.high,
+      portfolioImpactPct: top ? top.portfolioImpactPct : 0,
+      asOf: top ? top.asOf : latestAsOf,
+      deepLinkAnchor: anchor,
+      cooldownDays: CONFIG.duplicateCooldownDays,
+    };
+  }
+
+  if (duplicateHigh) {
+    return {
+      date: nowMs,
+      notificationState: "quiet",
+      decisionTitle: "No repeat ping",
+      decisionBody: duplicateHigh.symbol + " still has a high-severity signal, but this dedup key was already alerted inside the cool-down window.",
+      topSignalId: duplicateHigh.signalId,
+      topSymbol: duplicateHigh.symbol,
+      topSeverity: duplicateHigh.severity,
+      quietReason: "duplicate",
+      nextAction: "Open " + duplicateHigh.symbol + " detail if you want context.",
+      nextTrigger: "A new high-severity signal outside the cool-down window can notify again.",
+      score: top ? top.score : null,
+      threshold: thresholds.high,
+      portfolioImpactPct: duplicateHigh.portfolioImpactPct,
+      asOf: duplicateHigh.asOf,
+      deepLinkAnchor: anchor,
+      cooldownDays: CONFIG.duplicateCooldownDays,
+    };
+  }
+
+  if (top) {
+    const state = top.severity === "medium" ? "watch" : "quiet";
+    return {
+      date: nowMs,
+      notificationState: state,
+      decisionTitle: "No ping sent",
+      decisionBody: top.symbol + " is " + top.severity + " severity. " + top.evidence + " It stayed below the high-severity alert bar.",
+      topSignalId: top.signalId,
+      topSymbol: top.symbol,
+      topSeverity: top.severity,
+      quietReason: top.severity === "medium" ? "below_threshold" : "no_material_signal",
+      nextAction: top.severity === "medium" ? "Open " + top.symbol + " detail if you want context." : "No action needed.",
+      nextTrigger: "Next ping requires score >= " + String(thresholds.high) + " and a non-duplicate high-severity signal.",
+      score: top.score,
+      threshold: thresholds.high,
+      portfolioImpactPct: top.portfolioImpactPct,
+      asOf: top.asOf,
+      deepLinkAnchor: anchor,
+      cooldownDays: CONFIG.duplicateCooldownDays,
+    };
+  }
+
+  return {
+    date: nowMs,
+    notificationState: "quiet",
+    decisionTitle: "No ping sent",
+    decisionBody: "No attention signal was generated in this run.",
+    topSignalId: "",
+    topSymbol: "PORTFOLIO",
+    topSeverity: "quiet",
+    quietReason: "no_signal",
+    nextAction: "No action needed.",
+    nextTrigger: "Next ping requires a high-severity signal.",
+    score: null,
+    threshold: thresholds.high,
+    portfolioImpactPct: 0,
+    asOf: latestAsOf,
+    deepLinkAnchor: anchor,
+    cooldownDays: CONFIG.duplicateCooldownDays,
+  };
+}
+
+function buildNotify(alertRows, decision, setupConfirmation) {
+  const actionable = alertRows.filter((row) => row.severity === "high" && row.deliveryState === "candidate");
   if (!actionable.length) {
+    if (setupConfirmation) {
+      const url = CONFIG.playbookUrl && CONFIG.playbookUrl.indexOf("REPLACE_") < 0
+        ? CONFIG.playbookUrl
+        : "";
+      return {
+        title: "Portfolio Watch enabled",
+        body:
+          "Portfolio Watch is on. This is a one-time setup confirmation, not a market signal.\n\n" +
+          "Current decision: " + (decision.decisionTitle || "No material signal") + ".\n\n" +
+          (url ? "[Open Playbook](" + url + ")" : "Open the Playbook to inspect the current state."),
+      };
+    }
     return {
       title: "Portfolio Watch",
       body: "<|SKIP_NOTIFICATION|>",
@@ -595,8 +791,6 @@ function buildNotify(alertRows) {
 
   const assetRecords = symbolData.map((item) => item.assetRecord);
   const signalRecords = symbolData.map((item) => item.signalRecord).sort((a, b) => b.score - a.score);
-  const alertRows = buildAlertRows(signalRecords, nowMs, assetRecords.map((record) => record.asOf).sort().slice(-1)[0]);
-  const notify = buildNotify(alertRows);
   const priceRecords = [];
   symbolData.forEach((item) => item.priceRecords.forEach((record) => priceRecords.push(record)));
   const equityRecords = buildEquity(symbolData, benchmark ? benchmark.priceRecords : null);
@@ -629,14 +823,35 @@ function buildNotify(alertRows) {
     missingSymbols: missing.join("; "),
   };
 
+  let notifyState = "quiet";
+  let alertCandidateCount = 0;
+  let setupConfirmationState = "not_requested";
   await feed.run(async (ctx) => {
+    const priorAlerts = await loadPriorAlerts(ctx);
+    const alertRows = buildAlertRows(signalRecords, nowMs, latestAsOf, priorAlerts);
+    const runArgs = env.args || {};
+    const setupConfirmationAlreadySent = await ctx.kv.load("initialSubscriptionConfirmationSent");
+    const setupConfirmation =
+      CONFIG.initialSubscriptionConfirmation &&
+      runArgs.initialConfirmation === true &&
+      !setupConfirmationAlreadySent;
+    const decision = buildDecision(signalRecords, alertRows, nowMs, latestAsOf, setupConfirmation);
+    const notify = buildNotify(alertRows, decision, setupConfirmation);
+    notifyState = notify.body === "<|SKIP_NOTIFICATION|>" ? "quiet" : "message";
+    setupConfirmationState = setupConfirmation ? "sent_or_replaced_by_market_alert" : setupConfirmationAlreadySent ? "already_sent" : "not_requested";
+    alertCandidateCount = alertRows.filter((row) => row.deliveryState === "candidate").length;
+
     await ctx.self.ts("portfolio", "summary").append([summaryRecord]);
     await ctx.self.ts("portfolio", "equity").append(equityRecords);
     await ctx.self.ts("watch", "assets").append(assetRecords);
     await ctx.self.ts("history", "prices").append(priceRecords);
     await ctx.self.ts("signals", "events").append(signalRecords);
     await ctx.self.ts("alerts", "events").append(alertRows);
+    await ctx.self.ts("alerts", "decision").append([decision]);
     await ctx.self.ts("notify", "message").append([{ date: nowMs, title: notify.title, body: notify.body }]);
+    if (setupConfirmation && notify.body !== "<|SKIP_NOTIFICATION|>") {
+      await ctx.kv.put("initialSubscriptionConfirmationSent", String(nowMs));
+    }
   });
 
   return {
@@ -645,7 +860,9 @@ function buildNotify(alertRows) {
     missing,
     signals: signalRecords.length,
     highSignalCount,
-    notify: notify.body === "<|SKIP_NOTIFICATION|>" ? "quiet" : "message",
+    alertCandidates: alertCandidateCount,
+    notify: notifyState,
+    setupConfirmation: setupConfirmationState,
     asOf: latestAsOf,
   };
 })();

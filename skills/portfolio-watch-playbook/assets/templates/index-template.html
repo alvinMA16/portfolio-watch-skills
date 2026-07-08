@@ -120,6 +120,49 @@
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: var(--spacing-m);
       }
+      .decision-box {
+        background: var(--grey-g01);
+        border-radius: var(--radius-ct-s);
+        padding: var(--spacing-xl);
+        display: grid;
+        grid-template-columns: 1.5fr 1fr;
+        gap: var(--spacing-xl);
+        align-items: start;
+      }
+      .decision-kicker {
+        font-size: 12px;
+        line-height: 20px;
+        color: var(--text-n7);
+      }
+      .decision-title {
+        margin-top: var(--spacing-xxs);
+        font-size: 28px;
+        line-height: 36px;
+        font-weight: 400;
+        color: var(--text-n9);
+      }
+      .decision-body {
+        margin-top: var(--spacing-xs);
+        font-size: 14px;
+        line-height: 22px;
+        color: var(--text-n7);
+      }
+      .decision-action {
+        margin-top: var(--spacing-m);
+        border: 0;
+        background: transparent;
+        color: var(--main-m1);
+        font: inherit;
+        font-size: 14px;
+        line-height: 22px;
+        padding: 0;
+        cursor: pointer;
+      }
+      .decision-facts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--spacing-xs);
+      }
       .signal-card {
         min-width: 0;
         padding: var(--spacing-m);
@@ -167,45 +210,6 @@
         line-height: 21px;
         color: var(--text-n7);
       }
-      .chart-body {
-        flex: 1;
-        padding: var(--spacing-m);
-        position: relative;
-        background-image: radial-gradient(circle, rgba(0, 0, 0, 0.16) 0.6px, transparent 0.6px);
-        background-size: 3px 3px;
-      }
-      .chart-container {
-        width: 100%;
-        height: 320px;
-        min-height: 180px;
-      }
-      .table-card {
-        width: 100%;
-        overflow-x: auto;
-      }
-      .table-row {
-        display: grid;
-        grid-template-columns: 86px 1.4fr 82px 72px 72px 72px 82px 86px 90px 86px;
-        gap: var(--spacing-m);
-        min-width: 920px;
-        border-bottom: 0.5px solid var(--line-l12);
-      }
-      .table-row:last-child {
-        border-bottom: none;
-      }
-      .table-cell {
-        padding: 12px 0;
-        font-size: 13px;
-        line-height: 21px;
-        color: var(--text-n9);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      .table-header .table-cell {
-        padding-top: 0;
-        color: var(--text-n7);
-      }
       .detail-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -241,7 +245,8 @@
           grid-column: span 4;
         }
         .signal-list,
-        .detail-grid {
+        .detail-grid,
+        .decision-box {
           grid-template-columns: 1fr;
         }
       }
@@ -255,6 +260,22 @@
       <div class="error-box" id="errorBox"></div>
 
       <section class="grid" aria-label="Portfolio watch">
+        <div class="panel col-8" id="decisionPanel">
+          <div class="panel-title">
+            <span class="panel-title-text">Notification Decision</span>
+            <span class="panel-meta" id="decisionStamp"></span>
+          </div>
+          <div class="decision-box">
+            <div>
+              <div class="decision-kicker" id="decisionState">...</div>
+              <div class="decision-title" id="decisionTitle">...</div>
+              <div class="decision-body" id="decisionBody">...</div>
+              <button class="btn btn-secondary btn-small decision-action" type="button" id="decisionAction">...</button>
+            </div>
+            <div class="decision-facts" id="decisionFacts"></div>
+          </div>
+        </div>
+
         <div class="panel col-2">
           <div class="panel-title"><span class="panel-title-text">State</span></div>
           <div class="metric-box">
@@ -309,14 +330,14 @@
             <span class="panel-title-text">Portfolio Path</span>
             <span class="panel-meta" id="equityStamp"></span>
           </div>
-          <div class="chart-body"><div id="equityChart" class="chart-container"></div></div>
+          <div class="chart-body chart-dotted-background"><div id="equityChart" class="chart-container" style="width:100%;height:320px;"></div></div>
         </div>
         <div class="panel col-4">
           <div class="panel-title">
             <span class="panel-title-text">Constituent Paths</span>
             <span class="panel-meta" id="priceStamp"></span>
           </div>
-          <div class="chart-body"><div id="priceChart" class="chart-container"></div></div>
+          <div class="chart-body chart-dotted-background"><div id="priceChart" class="chart-container" style="width:100%;height:320px;"></div></div>
         </div>
 
         <div class="panel col-8">
@@ -353,6 +374,7 @@
         prices: feedPath("history", "prices", "@last/260"),
         signals: feedPath("signals", "events", "@last/1"),
         alerts: feedPath("alerts", "events", "@last/5"),
+        decision: feedPath("alerts", "decision", "@last/1"),
       };
       const PALETTE = ["#49a3a6", "#e05f55", "#5f75c9", "#7d9f55", "#b86aa8", "#d39b42", "#627c91"];
       const FONT = "'Delight', -apple-system, 'OPPO Sans 4.0', BlinkMacSystemFont, sans-serif";
@@ -449,6 +471,26 @@
         document.getElementById("kpiMissing").textContent = summary.missingSymbols ? `Missing: ${summary.missingSymbols}` : "No missing symbols";
       }
 
+      function renderDecision(decision) {
+        document.getElementById("decisionStamp").textContent = fmtDate(decision.asOf);
+        document.getElementById("decisionState").textContent = String(decision.notificationState || "quiet").toUpperCase();
+        document.getElementById("decisionTitle").textContent = decision.decisionTitle || "No ping sent";
+        document.getElementById("decisionBody").textContent = decision.decisionBody || "No high-severity signal fired in this run.";
+        const action = document.getElementById("decisionAction");
+        action.textContent = decision.nextAction || "No action needed.";
+        action.dataset.target = decision.deepLinkAnchor || "signals";
+        action.onclick = () => {
+          const target = document.getElementById(action.dataset.target);
+          if (target) target.scrollIntoView({ block: "start", behavior: "smooth" });
+        };
+        document.getElementById("decisionFacts").innerHTML =
+          `<span class="pill">Top ${escapeHtml(decision.topSymbol || "PORTFOLIO")}</span>` +
+          `<span class="pill">${escapeHtml(decision.topSeverity || "quiet")}</span>` +
+          `<span class="pill">Score ${fmtNumber(decision.score, 0)} / ${fmtNumber(decision.threshold, 0)}</span>` +
+          `<span class="pill">Impact ${fmtPct(decision.portfolioImpactPct)}</span>` +
+          `<span class="pill">${escapeHtml(decision.nextTrigger || "")}</span>`;
+      }
+
       function renderSignals(signals) {
         const sorted = signals.slice().sort((a, b) => (b.score || 0) - (a.score || 0)).slice(0, 6);
         document.getElementById("signalStamp").textContent = sorted.length ? fmtDate(sorted[0].asOf) : "";
@@ -475,7 +517,19 @@
 
       function renderAlerts(alerts) {
         const sorted = alerts.slice().sort((a, b) => (b.date || 0) - (a.date || 0)).slice(0, 4);
-        document.getElementById("alertHistory").innerHTML = sorted.map((row) => {
+        const quietCount = sorted.filter((row) => row.deliveryState === "quiet" || row.severity === "quiet").length;
+        const actionable = sorted.filter((row) => row.deliveryState !== "quiet" && row.severity !== "quiet");
+        if (!actionable.length && quietCount) {
+          document.getElementById("alertHistory").innerHTML =
+            `<article class="alert-card">` +
+            `<div class="signal-top"><span class="signal-symbol">PORTFOLIO</span><span class="severity quiet">QUIET</span></div>` +
+            `<div class="signal-title">Recent runs quiet</div>` +
+            `<div class="detail-text">${quietCount} recent run${quietCount === 1 ? "" : "s"} had no high-severity notification.</div>` +
+            `<div class="metric-caption">Quiet runs do not send heartbeat alerts.</div>` +
+            `</article>`;
+          return;
+        }
+        document.getElementById("alertHistory").innerHTML = actionable.map((row) => {
           return `<article class="alert-card">` +
             `<div class="signal-top"><span class="signal-symbol">${escapeHtml(row.symbol)}</span><span class="severity ${escapeHtml(row.severity)}">${escapeHtml(row.deliveryState || row.severity)}</span></div>` +
             `<div class="signal-title">${escapeHtml(row.title)}</div>` +
@@ -509,6 +563,44 @@
           chart.setOption(option);
           charts.push(chart);
           requestAnimationFrame(() => chart.resize());
+        });
+      }
+      function initTableAlignment(tableEl) {
+        const rows = tableEl.querySelectorAll(".table-row");
+        if (rows.length === 0) return;
+        const colCount = rows[0].querySelectorAll(".table-cell").length;
+        rows.forEach((row) => {
+          row.style.removeProperty("min-width");
+          const cells = row.querySelectorAll(".table-cell");
+          for (let i = 0; i < cells.length; i += 1) {
+            cells[i].style.removeProperty("flex");
+            cells[i].style.removeProperty("min-width");
+            cells[i].style.removeProperty("width");
+          }
+        });
+        const colWidths = [];
+        for (let col = 0; col < colCount; col += 1) {
+          let maxW = 0;
+          rows.forEach((row) => {
+            const cellEl = row.querySelectorAll(".table-cell")[col];
+            if (cellEl) maxW = Math.max(maxW, cellEl.scrollWidth);
+          });
+          colWidths.push(maxW);
+        }
+        const totalContent = colWidths.reduce((sum, width) => sum + width, 0);
+        const gapTotal = (colCount - 1) * 16;
+        const available = tableEl.clientWidth - gapTotal;
+        const resolved = colWidths.map((width) => Math.max(width, Math.round((width / totalContent) * available)));
+        let totalWidth = gapTotal;
+        for (let col = 0; col < colCount; col += 1) {
+          totalWidth += resolved[col];
+          rows.forEach((row) => {
+            const cellEl = row.querySelectorAll(".table-cell")[col];
+            if (cellEl) cellEl.style.flex = "0 0 " + resolved[col] + "px";
+          });
+        }
+        rows.forEach((row) => {
+          row.style.minWidth = totalWidth + "px";
         });
       }
       function renderEquityChart(rows) {
@@ -571,7 +663,7 @@
           cell("Rel 1D") + cell("RSI") + cell("MA20") + cell("Mkt Cap") + cell("Severity") +
           `</div>` +
           sorted.map((row) =>
-            `<div class="table-row">` +
+            `<div class="table-row table-body-row">` +
             cell(row.symbol) +
             cell(row.name || row.symbol) +
             cell(fmtPct(row.watchWeightPct)) +
@@ -584,16 +676,18 @@
             cell(`${row.severity || "--"} · ${fmtNumber(row.attentionScore, 0)}`) +
             `</div>`
           ).join("");
+        initTableAlignment(document.getElementById("assetTable"));
       }
 
       async function init() {
-        const [summaryRaw, equityRaw, assetRaw, priceRaw, signalRaw, alertRaw] = await Promise.all([
+        const [summaryRaw, equityRaw, assetRaw, priceRaw, signalRaw, alertRaw, decisionRaw] = await Promise.all([
           readAlfsJson(PATHS.summary),
           readAlfsJson(PATHS.equity),
           readAlfsJson(PATHS.assets),
           readAlfsJson(PATHS.prices),
           readAlfsJson(PATHS.signals),
           readAlfsJson(PATHS.alerts),
+          readAlfsJson(PATHS.decision),
         ]);
         const summary = last(flattenRows(summaryRaw));
         const equity = flattenRows(equityRaw);
@@ -601,9 +695,14 @@
         const prices = flattenRows(priceRaw);
         const signals = flattenRows(signalRaw);
         const alerts = flattenRows(alertRaw);
+        const decision = last(flattenRows(decisionRaw));
         if (!summary || !equity.length || !assets.length || !prices.length) {
           throw new Error("Feed output is empty");
         }
+        if (!decision) {
+          throw new Error("Alert decision output is empty");
+        }
+        renderDecision(decision);
         renderSummary(summary);
         renderSignals(signals);
         renderAlerts(alerts);
@@ -619,7 +718,10 @@
       }
 
       window.addEventListener("resize", () => {
-        requestAnimationFrame(() => charts.forEach((chart) => chart.resize()));
+        requestAnimationFrame(() => {
+          charts.forEach((chart) => chart.resize());
+          initTableAlignment(document.getElementById("assetTable"));
+        });
       });
       init().catch((error) => {
         const box = document.getElementById("errorBox");

@@ -103,6 +103,32 @@ Required fields:
 - `deepLinkAnchor`
 - `deliveryState` - `candidate`, `quiet`, or `sent` when verifiable.
 
+### `alerts/decision`
+
+One latest human-readable notification decision for the current run. This is
+the primary source for the Playbook's first screen.
+
+Required fields:
+
+- `notificationState` - `quiet`, `watch`, `sent`, or `setup`.
+- `decisionTitle` - plain user-facing conclusion, such as `No ping sent`.
+- `decisionBody` - one or two sentences explaining the decision.
+- `topSignalId` - top signal id, or empty string when no signal exists.
+- `topSymbol` - symbol driving the decision, or `PORTFOLIO`.
+- `topSeverity` - top signal severity, or `quiet`.
+- `quietReason` - `below_threshold`, `duplicate`, `no_signal`, `missing_data`,
+  or empty string when a market notification was sent. For setup confirmation,
+  use the current non-market reason such as `no_signal` or `below_threshold`.
+- `nextAction` - what the user should do next, such as `No action needed` or
+  `Open GOOGL detail`.
+- `nextTrigger` - short threshold explanation for the next notification.
+- `score`
+- `threshold`
+- `portfolioImpactPct`
+- `asOf`
+- `deepLinkAnchor`
+- `cooldownDays`
+
 ### `notify/message`
 
 Alva push sidecar. Write exactly one row per run.
@@ -112,7 +138,8 @@ Required fields:
 - `title`
 - `body`
 
-When no high-severity event exists, `body` must contain
+When no high-severity event exists and no first-subscription setup
+confirmation was explicitly requested, `body` must contain
 `<|SKIP_NOTIFICATION|>`.
 
 ## Data Rules
@@ -121,5 +148,8 @@ When no high-severity event exists, `body` must contain
 - Fetch current Data Skills endpoint docs before writing calls.
 - Use the feed as the single source of truth for HTML, README, and alerts.
 - Keep signal reasons short and evidence-backed.
+- Keep `alerts/decision` plain-language and user-facing. The page must not
+  require users to translate severity bands, score thresholds, or quiet audit
+  rows to understand the current state.
 - Store assumptions explicitly: weights, benchmark, cadence, missing coverage,
   and sensitivity.
