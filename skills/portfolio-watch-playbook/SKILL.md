@@ -25,7 +25,7 @@ that answers `Anything big?` with a plain red/yellow/green result, shows
    - `references/alva-platform/design-widgets.md`
    - `references/alva-platform/user-facing-prose.md`
 2. Parse the user's input into a portfolio spec: symbols, optional weights,
-   market, benchmark, cadence, and alert sensitivity.
+   market, benchmark, cadence, alert sensitivity, and output language.
 3. Read this Skill's references:
    - `references/portfolio-method.md` for attention-triage methodology.
    - `references/data-contract.md` for required feed outputs and fields.
@@ -33,7 +33,10 @@ that answers `Anything big?` with a plain red/yellow/green result, shows
    - `references/alert-contract.md` for quiet-by-default alert behavior.
    - `references/build-checklist.md` for release and verification gates.
 4. Generate from `assets/templates/`, replacing all placeholders with the
-   user's portfolio and current Alva namespace.
+   user's portfolio and current Alva namespace. Treat templates as scaffolds:
+   translate or rewrite every user-visible label, sentence, README paragraph,
+   alpi prompt, setup/test notification, and alert message into the selected
+   output language before release.
 5. Release only after the feed, Playbook, README, screenshot, and alert
    verification gates pass.
 
@@ -63,15 +66,15 @@ is whether anything big happened and what concrete data supports that answer.
 Do not add a separate holdings-status table that repeats the first-screen
 holding cards. If a holding-level state is needed, put it in the first-screen
 cards or in the signal detail evidence. Use one visual component for all
-red/yellow/green labels across the page. Do not add a separate
-`值得留意的变化` section when it repeats the same holdings already shown in the
-first-screen cards.
+localized red/yellow/green labels across the page. Do not add a separate
+localized "changes worth watching" section when it repeats the same holdings
+already shown in the first-screen cards.
 
-Render `证据明细` as a table, not a repeated card grid. Keep stable anchors on
-the table rows so notifications can still deep-link to the relevant signal.
-Do not show low-value generic caveats under every evidence row. Only show
-missing-source copy when a source that normally participates in the decision was
-unavailable for the current run.
+Render the localized evidence-detail section as a table, not a repeated card
+grid. Keep stable anchors on the table rows so notifications can still
+deep-link to the relevant signal. Do not show low-value generic caveats under
+every evidence row. Only show missing-source copy when a source that normally
+participates in the decision was unavailable for the current run.
 Any visible signed return or relative-return percentage must use green for
 positive values and red for negative values, including values inside narrative
 sentences.
@@ -97,8 +100,11 @@ deterministic fallback prose if the model output is unavailable.
   data. Do not infer it.
 - Cadence: use an end-of-day market refresh for v1 unless the user asks for
   intraday monitoring and data coverage supports it.
-- Language: follow the user's current language and stable memory preference
-  for visible UI, README, and alert-decision prose. Keep ticker symbols and
+- Language: detect the dominant language of the user's original request and
+  use it as the default output language for visible UI, README, alert-decision
+  prose, setup/test notifications, manual test button copy, and model summary
+  prompts. If the user explicitly asks for another language, use that explicit
+  preference. Keep ticker symbols, URLs, feed paths, code identifiers, and
   structured field names unchanged.
 
 ## Hard Constraints
@@ -114,12 +120,20 @@ deterministic fallback prose if the model output is unavailable.
   explicitly asks for that separate capability.
 - Do not send heartbeat alerts. Quiet runs must write the skip sentinel in
   `notify/message`.
-- Do include a clickable deep link in every formal `请立即关注` notification.
-  The link must be in `notify/message.body` as Markdown and must use the
-  canonical Playbook URL plus the matching `deepLinkAnchor`, for example
-  `[打开 NVDA 证据明细](https://alva.ai/u/<owner>/playbooks/<name>#signal-...)`.
-  Do not send formal notifications with a homepage-only link, a relative
-  `#anchor`, or no link.
+- Do localize every user-visible string to the selected output language. For an
+  English request, do not leave Chinese-only labels such as `证据明细`, `通知状态`,
+  `发个测试`, `无需关注`, `留意一下`, or `请立即关注` in the released UI, README, or
+  notifications. For a Chinese request, keep the generated Playbook primarily
+  Chinese except ticker symbols, URLs, technical identifiers, and intentionally
+  fixed product copy such as `Anything big?` when appropriate.
+- Do include a clickable deep link in every formal red / urgent notification.
+  The link must be in `notify/message.body` as localized Markdown and must use
+  the canonical Playbook URL plus the matching `deepLinkAnchor`, for example
+  `[Open NVDA evidence](https://alva.ai/u/<owner>/playbooks/<name>#signal-...)`
+  in English or
+  `[打开 NVDA 证据明细](https://alva.ai/u/<owner>/playbooks/<name>#signal-...)`
+  in Chinese. Do not send formal notifications with a homepage-only link, a
+  relative `#anchor`, or no link.
 - Do not claim the Playbook watches news, earnings, analyst revisions,
   company-specific catalysts, or holding thesis drivers unless those sources
   are actually wired into the feed and succeeded for the current run. If they
@@ -136,29 +150,33 @@ deterministic fallback prose if the model output is unavailable.
   confirmation state.
 - Do not render quiet runs as repeated alert cards. Summarize quiet history as
   an inspectable state such as "recent runs quiet."
-- In the `通知状态` section, include a compact right-aligned `发个测试` control
+- In the localized notification-status section, include a compact right-aligned
+  manual test control such as `Send test` in English or `发个测试` in Chinese
   that calls an owner-only `sendTestNotification` UDF. The UDF must trigger a
   real `testNotification:true` automation run, wait for completion when
   possible, retry clearing automation args back to `{}`, and return a simple
   sent/failed result plus whether args were cleared. Do not implement it as a
   subscribe proposal, raw browser API call, or latest-message reader. The status
   copy must make clear that manual test notifications are channel tests, while
-  ordinary green/yellow states stay in the Playbook and only red `请立即关注`
-  market events are eligible for push. Show recent sent `alerts/decision` rows
-  as a compact notification history with type (`正式通知`, `测试通知`, or
-  `设置确认`) and sent time; use Alva `notification-history` only for external
-  delivery verification, not as a browser-side data source.
+  ordinary green/yellow states stay in the Playbook and only red / urgent market
+  events are eligible for push. Show recent sent `alerts/decision` rows as a
+  compact localized notification history with type labels such as `Formal`,
+  `Test`, and `Setup confirmation` in English or `正式通知`, `测试通知`, and
+  `设置确认` in Chinese, plus sent time; use Alva `notification-history` only
+  for external delivery verification, not as a browser-side data source.
 - If more than 20% of requested symbols fail legitimate lookup, stop and ask for
   corrected symbols or a supported data source.
 
 ## Reusable Assets
 
 - `assets/templates/feed-template.js` is the feed/automation template. It must
-  be parameterized before use.
+  be parameterized and localized before use.
 - `assets/templates/index-template.html` is the Playbook interface template. It
-  expects the data contract in `references/data-contract.md`.
+  expects the data contract in `references/data-contract.md` and must be
+  localized before release.
 - `assets/templates/send-test-notification-udf-template.js` is the owner-only
-  UDF for the `发个测试` button. Register it as `sendTestNotification` after the
-  feed cronjob exists and after `ALVA_API_KEY` is available in Secret Manager.
+  UDF for the localized manual-test button. Register it as
+  `sendTestNotification` after the feed cronjob exists and after `ALVA_API_KEY`
+  is available in Secret Manager.
 - `assets/templates/readme-template.md` is the methodology README template. It
-  must be regenerated for each released Playbook.
+  must be regenerated and localized for each released Playbook.

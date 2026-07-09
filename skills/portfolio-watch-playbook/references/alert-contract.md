@@ -2,8 +2,8 @@
 
 Portfolio Watch alerts are quiet by default. The Playbook should show all
 recent attention signals, but the phone should only receive a notification when
-a `Red / 请立即关注` event is fresh, relevant, explainable, material enough for
-the portfolio, and not a duplicate.
+a localized red / urgent event is fresh, relevant, explainable, material enough
+for the portfolio, and not a duplicate.
 
 There is one allowed exception: after the user's first successful subscription,
 send a one-time setup confirmation to prove the delivery chain works. This is
@@ -24,9 +24,9 @@ Each alertable event must include: `signalId`, `symbol`, `severity`, `title`,
 
 ## Push Policy
 
-- Push only `Red / 请立即关注` events.
-- Keep `Yellow / 留意一下` and `Green / 无需关注` signals in the Playbook, not in
-  phone notifications.
+- Push only localized red / urgent events.
+- Keep localized yellow and green signals in the Playbook, not in phone
+  notifications.
 - Write one `notify/message` row per automation run.
 - Write one `alerts/decision` row per automation run.
 - For quiet runs, set `body` to `<|SKIP_NOTIFICATION|>`, unless the run was
@@ -65,7 +65,10 @@ Body requirements:
 - Include portfolio impact when available.
 - Formal `sent` notifications must include a Markdown link to the canonical
   Playbook URL with a fragment matching `deepLinkAnchor`, such as
-  `[打开 TSLA 证据明细](https://alva.ai/u/<owner>/playbooks/<name>#signal-<signalId>)`.
+  `[Open TSLA evidence](https://alva.ai/u/<owner>/playbooks/<name>#signal-<signalId>)`
+  in English or
+  `[打开 TSLA 证据明细](https://alva.ai/u/<owner>/playbooks/<name>#signal-<signalId>)`
+  in Chinese.
   This is the required click path from the external notification back into the
   Playbook. Do not use a homepage-only link, a relative `#anchor`, or a plain
   text URL for formal notifications.
@@ -93,7 +96,7 @@ answer and current notification status; recent `sent`, `test`, and `setup` rows
 power the in-page "recent notifications sent" history. It should read like a
 concise product conclusion, not a diagnostics record.
 
-Examples:
+Examples for Chinese output:
 
 - Quiet: `无需关注。当前没有值得你查看的变化。`
 - Watch: `留意一下。TSLA 有变化值得看看，但还不到需要立刻处理。`
@@ -101,9 +104,12 @@ Examples:
 - Setup: `监控已开启。Portfolio Watch 已开启；这不是市场信号。`
 - Test: `测试通知。已发送一条测试通知；这不是市场信号。`
 
-Use the user's preferred language for `decisionTitle`, `decisionBody`,
-`nextAction`, and `nextTrigger` when memory or the current request makes it
-clear.
+For English output, use equivalent plain labels such as `No need to watch`,
+`Keep an eye on it`, `Look now`, `Monitor is on`, and `Test notification`.
+Use the selected output language for `notify/message.title`,
+`notify/message.body`, `decisionTitle`, `decisionBody`, `nextAction`,
+`nextTrigger`, setup confirmation copy, manual test copy, and Markdown link
+text. Keep ticker symbols, URLs, ids, and `deepLinkAnchor` unchanged.
 
 ## Current CLI Flow
 

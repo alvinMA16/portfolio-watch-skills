@@ -8,8 +8,10 @@ interrupted.
 The product output is a visual portfolio read, not a score report. Scores,
 severity bands, and indicators are implementation details that support one
 plain-language answer: **Anything big?** The user-facing answer must use
-`Green / 无需关注`, `Yellow / 留意一下`, or `Red / 请立即关注`, not raw scores or
-internal alert mechanics.
+localized green/yellow/red labels, not raw scores or internal alert mechanics.
+For English output, use plain labels such as `No need to watch`, `Keep an eye
+on it`, and `Look now`. For Chinese output, use `无需关注`, `留意一下`, and
+`请立即关注`.
 
 ## Inputs
 
@@ -83,13 +85,16 @@ Internal severity can still use `high`, `medium`, and `low` for scoring and
 backward compatibility, but the Playbook must translate it before showing it to
 users:
 
-- **Red / 请立即关注**: material portfolio impact, abnormal move, fresh data,
-  clear reason, and either sourced event confirmation or an unusually large
-  portfolio impact. Eligible for push.
-- **Yellow / 留意一下**: noteworthy but not urgent. This includes abnormal
+- **Red / urgent**: material portfolio impact, abnormal move, fresh data, clear
+  reason, and either sourced event confirmation or an unusually large portfolio
+  impact. Eligible for push. Localize as `Look now` in English or `请立即关注` in
+  Chinese.
+- **Yellow / watch**: noteworthy but not urgent. This includes abnormal
   price/portfolio moves without event confirmation, or sourced event context
-  that is worth reading but not enough to interrupt the user.
-- **Green / 无需关注**: context only.
+  that is worth reading but not enough to interrupt the user. Localize as
+  `Keep an eye on it` in English or `留意一下` in Chinese.
+- **Green / quiet**: context only. Localize as `No need to watch` in English or
+  `无需关注` in Chinese.
 
 Never rank only by largest percentage move. A smaller move in a large weight
 can outrank a larger move in a small weight. A volatile stock's ordinary move
@@ -118,11 +123,11 @@ the user. Keep these three jobs separate.
 
 Every run must produce one user-facing decision:
 
-- **Red / 请立即关注**: a fresh, non-duplicate, material event triggered or would
+- **Red / urgent**: a fresh, non-duplicate, material event triggered or would
   trigger a notification.
-- **Yellow / 留意一下**: a change is worth reading in the Playbook, but does not
+- **Yellow / watch**: a change is worth reading in the Playbook, but does not
   justify immediate interruption.
-- **Green / 无需关注**: no meaningful change in wired data.
+- **Green / quiet**: no meaningful change in wired data.
 
 The decision should say what happened, whether a sourced event was found nearby,
 why it did or did not clear the alert bar, whether it looks like one holding or

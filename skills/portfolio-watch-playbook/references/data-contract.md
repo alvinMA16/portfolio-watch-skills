@@ -24,12 +24,14 @@ Required fields:
 - `attentionCount` - number of medium/high signals.
 - `highSignalCount` - number of raw high-severity signals kept for backward
   compatibility; user-facing alert eligibility is `redSignalCount`.
-- `redSignalCount` - number of holdings with `请立即关注` status.
-- `yellowSignalCount` - number of holdings with `留意一下` status.
+- `redSignalCount` - number of holdings with localized red / urgent status.
+- `yellowSignalCount` - number of holdings with localized yellow / watch
+  status.
 - `riskState` - user-facing state such as `Normal`, `Watch`, or `Alert`.
 - `bigStatusColor` - `green`, `yellow`, or `red` for the first-screen answer.
-- `bigStatusLabel` - localized status label, such as `无需关注`, `留意一下`,
-  or `请立即关注`.
+- `bigStatusLabel` - localized status label, such as `No need to watch`,
+  `Keep an eye on it`, or `Look now` in English, and `无需关注`, `留意一下`, or
+  `请立即关注` in Chinese.
 - `bigStatusBody` - one plain-language sentence explaining the answer.
 - `portfolioScope` - plain-language read on whether the issue is single-name or
   portfolio-wide.
@@ -179,7 +181,7 @@ Required fields:
 ### `alerts/events`
 
 Events eligible for user interruption in the current run. Usually this is the
-`Red / 请立即关注` subset of `signals/events`.
+localized red / urgent subset of `signals/events`.
 
 Required fields:
 
@@ -235,9 +237,11 @@ required data contract, not optional display copy.
 
 Rows with `notificationState` of `sent`, `setup`, or `test` represent
 notifications intentionally emitted through the official feed/automation path.
-The UI should label them as `正式通知`, `设置确认`, or `测试通知` and show the row
-`date` as the sent time. Actual channel delivery status is verified with Alva
-`notification-history`, not by browser-side API calls.
+The UI should localize their type labels, such as `Formal`, `Setup
+confirmation`, and `Test` in English or `正式通知`, `设置确认`, and `测试通知` in
+Chinese, and show the row `date` as the sent time. Actual channel delivery
+status is verified with Alva `notification-history`, not by browser-side API
+calls.
 
 ### `notify/message`
 
@@ -290,8 +294,8 @@ Required fields:
   but it must not introduce new facts, events, news, catalysts, estimates, or
   recommendations.
 - Do not expose internal terms such as `gate`, `review candidate`, or
-  `portfolio risk elevated` as the primary UI answer. Use the red/yellow/green
-  labels and explain them in ordinary language.
+  `portfolio risk elevated` as the primary UI answer. Use localized
+  red/yellow/green labels and explain them in ordinary language.
 - Do not claim news, earnings, analyst revisions, company catalysts, or thesis
   drivers are monitored unless a feed output is actually backed by those
   sources and the current run succeeded. Put unavailable sources in

@@ -66,31 +66,42 @@ separate local checkout of the official Alva Skill.
   holding cards. Each holding card should show whether the move has matching
   event context or is still price-driven. If matched news has a URL, render the
   source/title as a clickable link in the holding card.
-- Do not render a separate `值得留意的变化`, "today queue", or similar section
-  when it repeats the first-screen holding cards.
-- Render `证据明细` as a table with row anchors, not a repeated card grid.
-  Include an event-evidence column sourced from `signals/events` and
-  `context/events`.
+- Do not render a separate localized "changes worth watching", "today queue",
+  or similar section when it repeats the first-screen holding cards.
+- Render the localized evidence-detail section as a table with row anchors, not
+  a repeated card grid. Include an event-evidence column sourced from
+  `signals/events` and `context/events`.
 - Evidence-missing copy should appear only when a source that normally
   participates in the decision was unavailable for the current run. Do not show
   generic caveats under every row.
 - Signed return and relative-return values must be green when positive and red
   when negative everywhere they appear.
-- Use one status-chip treatment for `无需关注`, `留意一下`, and `请立即关注` everywhere
-  those labels appear.
-- In `通知状态`, include a compact `发个测试` control that calls the registered
-  owner-only `sendTestNotification` UDF. The button must trigger a real manual
-  `testNotification:true` automation run and show a simple sent/failed result.
-  Do not implement it as a latest-message reader or subscribe proposal. Manual
-  tests are delivery-chain tests, while yellow changes stay in the Playbook and
-  only red market changes are eligible for ordinary push.
-- In `通知状态`, show recent sent notification decisions from `alerts/decision`
-  with type and sent time. Include only `sent`, `setup`, and `test` rows in the
-  sent-history list; do not mix quiet/watch rows into "sent" history.
+- Use one status-chip treatment for localized green/yellow/red labels
+  everywhere those labels appear.
+- In the localized notification-status section, include a compact manual-test
+  control such as `Send test` in English or `发个测试` in Chinese. It must call
+  the registered owner-only `sendTestNotification` UDF. The button must trigger
+  a real manual `testNotification:true` automation run and show a simple
+  sent/failed result. Do not implement it as a latest-message reader or
+  subscribe proposal. Manual tests are delivery-chain tests, while yellow
+  changes stay in the Playbook and only red market changes are eligible for
+  ordinary push.
+- In the localized notification-status section, show recent sent notification
+  decisions from `alerts/decision` with localized type and sent time. Include
+  only `sent`, `setup`, and `test` rows in the sent-history list; do not mix
+  quiet/watch rows into "sent" history.
 - The page must not claim news, earnings, analyst revisions, catalysts, or
   thesis drivers are monitored unless the feed actually writes those sourced
   outputs and the current run succeeded. Show unavailable sources in
-  `当前在看什么`.
+  the localized monitoring-scope section.
+- Verify language before release. The selected output language defaults to the
+  dominant language of the user's original request unless the user explicitly
+  asks for another language. For an English prompt, search generated `index.html`,
+  `README.md`, feed code, and UDF code for Chinese-only visible strings such as
+  `证据明细`, `通知状态`, `发个测试`, `无需关注`, `留意一下`, `请立即关注`, `正式通知`,
+  `测试通知`, and `设置确认`; none should remain in released user-facing copy.
+  For a Chinese prompt, confirm the main UI, README, alert messages, setup/test
+  notification copy, and alpi prompt are primarily Chinese.
 - HTML must use `AlvaToolkit.AlvaClient` for runtime reads.
 - Write HTML and README to `~/playbooks/<name>/`.
 - Draft with `alva release playbook-draft`.
