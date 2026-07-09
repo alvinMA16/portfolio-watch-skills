@@ -58,6 +58,10 @@ separate local checkout of the official Alva Skill.
   relative, volume, and portfolio-impact evidence. The portfolio trend chart
   should sit directly below it with usable Portfolio / Tickers / Compare
   controls and SPY / QQQ benchmark toggles when data exists.
+- Do not render a separate holdings-status table that repeats the first-screen
+  holding cards.
+- Use one status-chip treatment for `无需关注`, `留意一下`, and `请立即关注` everywhere
+  those labels appear.
 - The page must not claim news, earnings, analyst revisions, catalysts, or
   thesis drivers are monitored unless the feed actually writes those sourced
   outputs. Show unwired sources in `当前在看什么`.

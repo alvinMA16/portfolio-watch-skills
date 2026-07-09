@@ -143,12 +143,12 @@ thresholds, or repeated quiet audit rows.
 The Playbook contains:
 
 - Anything Big Status: the first-screen answer to whether anything needs
-  attention, backed by concrete holding-level values.
+  attention, backed by concrete holding-level values. This is also where
+  holding-level status is shown.
 - Portfolio Trend: chart evidence for portfolio, holdings, SPY, and QQQ when
   available.
 - Today queue: ranked events that deserve inspection.
 - Evidence explanation: what was observed and what is not wired.
-- Holdings State: all symbols, including non-alerting names.
 - Notification audit: why a ping was or was not sent.
 - Current capability: what the Playbook checks and what it does not check.
 

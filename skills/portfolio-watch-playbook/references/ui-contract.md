@@ -28,10 +28,15 @@ Show a compact decision surface:
 - Top changes: one or two evidence-backed lines that explain what is worth
   opening now or later.
 - Last checked should be a small timestamp, not a content block.
+- Use the same status-chip component everywhere a red/yellow/green label
+  appears. Do not show both color-name labels such as `黄色` and action labels
+  such as `留意一下`.
 
 Place the chart directly below the Anything Big region on desktop and mobile.
 Do not let KPI cards, alert history, raw scores, internal mechanism words,
 empty "why" fields, or generic "worth a look" copy crowd out this answer.
+Do not render a separate holdings table that repeats the first-screen holding
+cards.
 
 ## Portfolio Trend
 
@@ -84,10 +89,9 @@ Use plain sentences such as:
 
 `TSLA 有变化值得看看，但还不到需要立刻处理。`
 
-## Ping Status
+## 通知状态
 
-Show `alerts/decision` through the Portfolio Attention Status panel, not as a
-separate notification log:
+Show `alerts/decision` after `证据明细`, not before it:
 
 - Notification state: `quiet`, `watch`, `sent`, or `setup`.
 - Human conclusion, such as `无需关注`, `留意一下`, or `请立即关注`.
@@ -101,16 +105,6 @@ subscription confirmation and that no market signal is being claimed.
 Do not make the user infer notification behavior from score, severity,
 thresholds, or repeated quiet rows. Also do not imply that "留意一下" always
 means "worth alerting."
-
-## Overview
-
-Show the current portfolio state:
-
-- Portfolio risk state.
-- Latest as-of timestamp.
-- Portfolio 1D / 1W / 1M returns.
-- High and medium signal counts.
-- Weighting and benchmark assumptions.
 
 ## 证据明细
 
@@ -126,30 +120,12 @@ open the matching detail. The detail should show:
 - Source timestamp.
 - Data blind spots.
 
-## Holdings Table
-
-Show all working symbols, including non-alerting names:
-
-- Symbol, company, weight.
-- Close, 1D, 1W, 1M.
-- Relative return.
-- User status label.
-- Plain-language reason.
-- Short evidence state, including price and volume.
-
 ## History / Charts
 
 Use `chart/series` as the source of truth for normalized portfolio, benchmark,
 and constituent paths. Use runtime feed reads only. Do not inline chart data.
 
-## 为什么没通知你
-
-Show latest `alerts/events` records or a quiet state. Collapse repeated quiet
-runs into one summary such as `Last 3 runs quiet`; do not render multiple
-quiet rows as separate alert cards. This ties phone alerts back to the
-interface without creating noise.
-
-## 当前在看什么
+## 监控范围
 
 Show `capability/status` so the Playbook is honest about its scope:
 
@@ -168,6 +144,8 @@ Show `capability/status` so the Playbook is honest about its scope:
 - Keep all visible financial values sourced from feed outputs.
 - Make the first screen status-first with the chart as immediate evidence. Do
   not let KPI cards or alert history crowd out the attention answer.
+- Use one visual treatment for `无需关注`, `留意一下`, and `请立即关注` everywhere
+  those labels appear.
 - Make empty and partial-data states honest: show missing symbols and blind
   spots instead of placeholder values.
 - Do not show `Portfolio risk elevated`, `review candidate`, `gate`, raw

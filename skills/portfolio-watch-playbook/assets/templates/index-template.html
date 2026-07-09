@@ -271,7 +271,7 @@
       .attention-status-row > * {
         min-width: 0;
       }
-      .status-badge {
+      .status-chip {
         display: inline-flex;
         align-items: center;
         gap: 7px;
@@ -283,22 +283,23 @@
         background: var(--line-l05);
         color: var(--text-n7);
       }
-      .status-badge::before {
+      .status-chip::before {
         content: "";
         width: 8px;
         height: 8px;
+        flex: 0 0 auto;
         border-radius: 999px;
         background: currentColor;
       }
-      .status-badge.green {
+      .status-chip.green {
         color: #197245;
         background: #e8f5ee;
       }
-      .status-badge.yellow {
+      .status-chip.yellow {
         color: #8a6400;
         background: #fff3cf;
       }
-      .status-badge.red {
+      .status-chip.red {
         color: #a83b32;
         background: #fde8e5;
       }
@@ -353,12 +354,6 @@
         font-size: 15px;
         line-height: 24px;
         color: var(--text-n9);
-      }
-      .answer-state {
-        font-size: 13px;
-        line-height: 21px;
-        color: var(--text-n9);
-        overflow-wrap: anywhere;
       }
       .answer-detail {
         margin-top: var(--spacing-xs);
@@ -430,8 +425,7 @@
       .empty-block,
       .signal-card,
       .detail-card,
-      .alert-card,
-      .watch-table-surface {
+      .alert-card {
         background: var(--b0-page);
         border: 1px solid var(--line-l05);
         border-radius: var(--radius-ct-s);
@@ -502,7 +496,7 @@
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: var(--spacing-m);
       }
-      .panel.col-6 .detail-grid {
+      .panel.is-narrow .detail-grid {
         grid-template-columns: 1fr;
       }
       .signal-card,
@@ -531,36 +525,6 @@
         font-size: 13px;
         line-height: 20px;
         color: var(--text-n7);
-      }
-      .severity {
-        display: inline-flex;
-        align-items: center;
-        min-height: 20px;
-        padding: 0 7px;
-        border-radius: var(--radius-ct-min);
-        font-size: 11px;
-        line-height: 16px;
-        text-transform: uppercase;
-        background: var(--line-l05);
-        color: var(--text-n7);
-      }
-      .severity.high {
-        color: var(--main-m4);
-      }
-      .severity.medium {
-        color: var(--main-m1);
-      }
-      .severity.green {
-        color: #197245;
-        background: #e8f5ee;
-      }
-      .severity.yellow {
-        color: #8a6400;
-        background: #fff3cf;
-      }
-      .severity.red {
-        color: #a83b32;
-        background: #fde8e5;
       }
       .signal-title {
         font-size: 15px;
@@ -615,49 +579,6 @@
         display: grid;
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
         gap: var(--spacing-s);
-      }
-      .watch-table-surface {
-        overflow-x: auto;
-      }
-      .watch-table-row {
-        display: flex;
-        gap: var(--spacing-m);
-        padding: 0 var(--spacing-m);
-        min-height: 40px;
-        align-items: center;
-      }
-      .table-header {
-        color: var(--text-n5);
-        font-size: 12px;
-        line-height: 20px;
-      }
-      .table-body-row {
-        color: var(--text-n8);
-        font-size: 13px;
-        line-height: 21px;
-        border-top: 1px solid var(--line-l03);
-      }
-      .watch-table-cell {
-        min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-      .watch-table-cell.is-technical {
-        min-width: 260px;
-        max-width: 420px;
-        white-space: normal;
-        overflow: visible;
-      }
-      .tech-cell-title {
-        color: var(--text-n9);
-        line-height: 21px;
-      }
-      .tech-cell-sub {
-        margin-top: 2px;
-        color: var(--text-n5);
-        font-size: 12px;
-        line-height: 18px;
       }
       .ticker-controls {
         margin-top: var(--spacing-s);
@@ -805,7 +726,7 @@
               <h1 class="attention-question" id="overallStatus">...</h1>
               <div class="attention-lede" id="attentionWhy">...</div>
             </div>
-            <span class="status-badge" id="overallBadge">...</span>
+            <span class="status-chip" id="overallBadge">...</span>
           </div>
 
           <div class="answer-list" id="todayAnswers"></div>
@@ -854,24 +775,16 @@
         </div>
 
         <div class="panel col-12">
-          <div class="section-title">
-            <span class="section-title-text">持仓状态</span>
-            <span class="section-meta" id="tableStamp"></span>
-          </div>
-          <div class="watch-table-surface" id="assetTable"></div>
-        </div>
-
-        <div class="panel col-6">
           <div class="section-title"><span class="section-title-text">证据明细</span></div>
           <div class="detail-grid" id="signalDetails"></div>
         </div>
 
-        <div class="panel col-6">
+        <div class="panel col-6 is-narrow">
           <div class="section-title"><span class="section-title-text">通知状态</span></div>
           <div class="detail-grid" id="alertHistory"></div>
         </div>
 
-        <div class="panel col-12">
+        <div class="panel col-6">
           <div class="section-title"><span class="section-title-text">监控范围</span></div>
           <div id="capabilityStatus"></div>
         </div>
@@ -1054,15 +967,9 @@
         if (color === "yellow") return "有变化值得看看，但还不到需要立刻处理。";
         return "当前没有值得你查看的变化。";
       }
-      function colorBadge(color) {
-        if (color === "red") return "红色";
-        if (color === "yellow") return "黄色";
-        return "绿色";
-      }
-      function statusClass(color) {
-        if (color === "red") return "is-down";
-        if (color === "yellow") return "is-watch";
-        return "is-neutral";
+      function statusChip(color, label) {
+        const safeColor = normalizedColor(color) || "green";
+        return `<span class="status-chip ${escapeHtml(safeColor)}">${escapeHtml(label || colorLabel(safeColor))}</span>`;
       }
       function reviewColorForRow(row) {
         const explicit = normalizedColor(row.reviewColor || row.bigStatusColor);
@@ -1096,7 +1003,6 @@
         if (explicit) {
           return {
             color: explicit,
-            badge: colorBadge(explicit),
             label: decision.bigStatusLabel || summary.bigStatusLabel || colorLabel(explicit),
             subtitle: decision.bigStatusBody || summary.bigStatusBody || colorBody(explicit),
           };
@@ -1107,7 +1013,6 @@
         if (state === "sent" || highCount > 0 || summary.riskState === "Alert") {
           return {
             color: "red",
-            badge: colorBadge("red"),
             label: colorLabel("red"),
             subtitle: colorBody("red"),
           };
@@ -1115,14 +1020,12 @@
         if (state === "watch" || attentionCount > 0 || summary.riskState === "Watch") {
           return {
             color: "yellow",
-            badge: colorBadge("yellow"),
             label: colorLabel("yellow"),
             subtitle: colorBody("yellow"),
           };
         }
         return {
           color: "green",
-          badge: colorBadge("green"),
           label: colorLabel("green"),
           subtitle: colorBody("green"),
         };
@@ -1130,7 +1033,7 @@
       function answerForAsset(asset, signal) {
         const row = signal || asset || {};
         const color = reviewColorForRow(row);
-        return { label: row.reviewLabel || colorLabel(color), className: statusClass(color) };
+        return { label: row.reviewLabel || colorLabel(color), color };
       }
       function buildNextWatch(summary, decision, signals) {
         if (decision.nextTrigger) return decision.nextTrigger;
@@ -1191,7 +1094,7 @@
       function renderAttentionStatus(summary, decision, assets, signals) {
         const model = attentionStatusModel(summary, decision, signals);
         const badge = document.getElementById("overallBadge");
-        badge.textContent = model.badge;
+        badge.textContent = model.label;
         badge.classList.remove("green", "yellow", "red");
         badge.classList.add(model.color);
         document.getElementById("overallStatus").textContent = model.label;
@@ -1205,7 +1108,7 @@
           const color = reviewColorForRow(signal || asset);
           const impact = portfolioImpactFor(asset, signal);
           return `<article class="answer-row ${escapeHtml(color)}">` +
-            `<div class="answer-top"><div class="answer-symbol">${escapeHtml(asset.symbol)}</div><div class="answer-state ${answer.className}">${escapeHtml(answer.label)}</div></div>` +
+            `<div class="answer-top"><div class="answer-symbol">${escapeHtml(asset.symbol)}</div>${statusChip(answer.color, answer.label)}</div>` +
             `<div class="answer-detail">${escapeHtml(holdingEvidence(asset, signal))}</div>` +
             `<div class="mini-metrics">` +
             miniMetric("1D", fmtPct(asset.return1d), clsFor(asset.return1d)) +
@@ -1221,7 +1124,7 @@
           const asset = assets.find((item) => item.symbol === row.symbol) || {};
           const color = reviewColorForRow(row);
           return `<article class="focus-row">` +
-            `<div class="signal-top"><span class="signal-symbol">${escapeHtml(row.symbol)}</span><span class="severity ${escapeHtml(color)}">${escapeHtml(row.reviewLabel || colorLabel(color))}</span></div>` +
+            `<div class="signal-top"><span class="signal-symbol">${escapeHtml(row.symbol)}</span>${statusChip(color, row.reviewLabel || colorLabel(color))}</div>` +
             `<div class="focus-title">${escapeHtml(holdingEvidence(asset, row))}</div>` +
             `<div class="focus-text">${escapeHtml(row.technicalSummary || row.confirmationStatus || "")}</div>` +
             `</article>`;
@@ -1428,18 +1331,6 @@
           `<span class="tech-chip"><span class="tech-chip-label">${escapeHtml(label)}</span>${escapeHtml(value || "--")}</span>`
         ).join("") + `</div>`;
       }
-      function rawCell(html, className) {
-        return `<div class="watch-table-cell ${className || ""}">${html}</div>`;
-      }
-      function technicalCell(row, signal) {
-        const driver = row.primaryTechnicalDriver ? `主要变化：${stateText(row.primaryTechnicalDriver)}` : "主要变化：--";
-        const summary = holdingEvidence(row, signal);
-        return rawCell(
-          `<div class="tech-cell-title">${escapeHtml(driver)}</div>` +
-          `<div class="tech-cell-sub">${escapeHtml(summary)}</div>`,
-          "is-technical"
-        );
-      }
       function renderSignals(signals) {
         const important = signals
           .filter((row) => reviewColorForRow(row) !== "green")
@@ -1465,7 +1356,7 @@
             const color = reviewColorForRow(row);
             const asset = allAssets.find((item) => item.symbol === row.symbol) || {};
             return `<a class="signal-card" href="#${escapeHtml(anchor)}">` +
-              `<div class="signal-top"><span class="signal-symbol">${escapeHtml(row.symbol)}</span><span class="severity ${escapeHtml(color)}">${escapeHtml(row.reviewLabel || colorLabel(color))}</span></div>` +
+              `<div class="signal-top"><span class="signal-symbol">${escapeHtml(row.symbol)}</span>${statusChip(color, row.reviewLabel || colorLabel(color))}</div>` +
               `<div class="signal-title">${escapeHtml(signalIntent(row))}</div>` +
               `<div class="signal-reason">${escapeHtml(holdingEvidence(asset, row))}</div>` +
               techChips(row) +
@@ -1478,7 +1369,7 @@
           const color = reviewColorForRow(row);
           const asset = allAssets.find((item) => item.symbol === row.symbol) || {};
           return `<article class="detail-card" id="${escapeHtml(anchor)}">` +
-            `<div class="signal-top"><span class="signal-symbol">${escapeHtml(row.symbol)}</span><span class="severity ${escapeHtml(color)}">${escapeHtml(row.reviewLabel || colorLabel(color))}</span></div>` +
+            `<div class="signal-top"><span class="signal-symbol">${escapeHtml(row.symbol)}</span>${statusChip(color, row.reviewLabel || colorLabel(color))}</div>` +
             `<div class="signal-title">${escapeHtml(holdingEvidence(asset, row))}</div>` +
             `<div class="detail-text">${escapeHtml(row.technicalSummary || row.confirmationStatus || "")}</div>` +
             techChips(row) +
@@ -1497,7 +1388,7 @@
           const title = sent ? "已通知你" : "未通知";
           document.getElementById("alertHistory").innerHTML =
             `<article class="alert-card">` +
-            `<div class="signal-top"><span class="signal-symbol">PORTFOLIO</span><span class="severity ${escapeHtml(color)}">${escapeHtml(decision.bigStatusLabel || "无需关注")}</span></div>` +
+            `<div class="signal-top"><span class="signal-symbol">PORTFOLIO</span>${statusChip(color, decision.bigStatusLabel || "无需关注")}</div>` +
             `<div class="signal-title">${escapeHtml(title)}</div>` +
             `<div class="detail-text">${escapeHtml(decision.notificationAudit || "")}</div>` +
             `<div class="metric-caption">当前等级：${escapeHtml(decision.bigStatusLabel || "无需关注")} / ${escapeHtml(fmtDate(decision.asOf))}</div>` +
@@ -1510,7 +1401,7 @@
         if (!actionable.length && quietCount) {
           document.getElementById("alertHistory").innerHTML =
             `<article class="alert-card">` +
-            `<div class="signal-top"><span class="signal-symbol">PORTFOLIO</span><span class="severity quiet">无需关注</span></div>` +
+            `<div class="signal-top"><span class="signal-symbol">PORTFOLIO</span>${statusChip("green", "无需关注")}</div>` +
             `<div class="signal-title">没有通知你</div>` +
             `<div class="detail-text">最近 ${quietCount} 次运行没有达到请立即关注级别。</div>` +
             `<div class="metric-caption">无大事时不会发送心跳通知。</div>` +
@@ -1519,7 +1410,7 @@
         }
         document.getElementById("alertHistory").innerHTML = actionable.map((row) =>
           `<article class="alert-card">` +
-          `<div class="signal-top"><span class="signal-symbol">${escapeHtml(row.symbol)}</span><span class="severity ${escapeHtml(row.severity)}">${escapeHtml(row.deliveryState || row.severity)}</span></div>` +
+          `<div class="signal-top"><span class="signal-symbol">${escapeHtml(row.symbol)}</span>${statusChip(row.severity === "high" ? "red" : "yellow", row.severity === "high" ? "请立即关注" : "留意一下")}</div>` +
           `<div class="signal-title">${escapeHtml(row.title)}</div>` +
           `<div class="detail-text">${escapeHtml(row.body)}</div>` +
           `<div class="metric-caption">触发项 ${escapeHtml(row.triggerType)} / ${escapeHtml(fmtDate(row.asOf))}</div>` +
@@ -1541,74 +1432,6 @@
           `</div>` +
           `<div class="metric-caption">${escapeHtml(row.decisionLimit || fallback.decisionLimit)}</div>` +
           `</div>`;
-      }
-      function cell(value, className) {
-        return `<div class="watch-table-cell ${className || ""}">${escapeHtml(value)}</div>`;
-      }
-      function initTableAlignment(tableEl) {
-        const rows = tableEl.querySelectorAll(".watch-table-row");
-        if (rows.length === 0) return;
-        const colCount = rows[0].querySelectorAll(".watch-table-cell").length;
-        rows.forEach((row) => {
-          row.style.removeProperty("min-width");
-          const cells = row.querySelectorAll(".watch-table-cell");
-          for (let i = 0; i < cells.length; i += 1) {
-            cells[i].style.removeProperty("flex");
-          }
-        });
-        const colWidths = [];
-        for (let col = 0; col < colCount; col += 1) {
-          let maxW = 0;
-          rows.forEach((row) => {
-            const cellEl = row.querySelectorAll(".watch-table-cell")[col];
-            if (cellEl) maxW = Math.max(maxW, cellEl.scrollWidth);
-          });
-          colWidths.push(maxW);
-        }
-        const totalContent = colWidths.reduce((sum, width) => sum + width, 0);
-        const gapTotal = (colCount - 1) * 16;
-        const available = tableEl.clientWidth - gapTotal;
-        const resolved = colWidths.map((width) => Math.max(width, Math.round((width / totalContent) * available)));
-        let totalWidth = gapTotal;
-        for (let col = 0; col < colCount; col += 1) {
-          totalWidth += resolved[col];
-          rows.forEach((row) => {
-            const cellEl = row.querySelectorAll(".watch-table-cell")[col];
-            if (cellEl) cellEl.style.flex = "0 0 " + resolved[col] + "px";
-          });
-        }
-        rows.forEach((row) => {
-          row.style.minWidth = totalWidth + "px";
-        });
-      }
-      function renderTable(assets) {
-        document.getElementById("tableStamp").textContent = assets.length ? fmtDate(assets[0].asOf) : "";
-        const signalBySymbol = signalBySymbolMap(allSignals);
-        const sorted = assets.slice().sort((a, b) => {
-          const priorityDiff = reviewPriorityForRow(b) - reviewPriorityForRow(a);
-          if (priorityDiff) return priorityDiff;
-          return (b.attentionScore || 0) - (a.attentionScore || 0);
-        });
-        document.getElementById("assetTable").innerHTML =
-          `<div class="watch-table-row table-header">` +
-          cell("Symbol") + cell("Weight") + cell("1D") + cell("相对 SPY") +
-          cell("成交量") + cell("组合影响") + cell("状态") + cell("证据") +
-          `</div>` +
-          sorted.map((row) => {
-            const signal = signalBySymbol[row.symbol];
-            const impact = portfolioImpactFor(row, signal);
-            return `<div class="watch-table-row table-body-row">` +
-            cell(row.symbol) +
-            cell(fmtNumber(row.watchWeightPct, 2) + "%") +
-            cell(fmtPct(row.return1d), clsFor(row.return1d)) +
-            cell(fmtPct(row.relativeReturn1d), clsFor(row.relativeReturn1d)) +
-            cell(fmtRatio(row.volumeRatio20d)) +
-            cell(fmtPct(impact)) +
-            cell(row.reviewLabel || colorLabel(reviewColorForRow(row)), statusClass(reviewColorForRow(row))) +
-            technicalCell(row, signal) +
-            `</div>`;
-          }).join("");
-        initTableAlignment(document.getElementById("assetTable"));
       }
       async function init() {
         const [summaryRaw, assetRaw, chartRaw, signalRaw, alertRaw, decisionRaw, capabilityRaw] = await Promise.all([
@@ -1636,7 +1459,6 @@
         renderAttentionStatus(summary, decision, allAssets, allSignals);
         renderSignals(allSignals);
         renderAlerts(alerts, decision);
-        renderTable(allAssets);
         renderCapability(last(flattenRows(capabilityRaw)));
         renderControlsAndChart();
         if (window.location.hash) {
@@ -1649,7 +1471,6 @@
       window.addEventListener("resize", () => {
         requestAnimationFrame(() => {
           if (trendChart) trendChart.resize();
-          initTableAlignment(document.getElementById("assetTable"));
         });
       });
       init().catch((error) => {

@@ -57,6 +57,11 @@ below it. Do not make users start with `Watch`, `Medium`, score numbers,
 indicator tables. Charts remain the evidence layer; the primary product answer
 is whether anything big happened and what concrete data supports that answer.
 
+Do not add a separate holdings-status table that repeats the first-screen
+holding cards. If a holding-level state is needed, put it in the first-screen
+cards or in the signal detail evidence. Use one visual component for all
+red/yellow/green labels across the page.
+
 ## Defaults
 
 - Market: US equities unless the user clearly supplies another covered market.
