@@ -15,6 +15,8 @@ Required fields:
 - `universe` - comma-separated symbols.
 - `weighting` - weighting assumption or source.
 - `benchmark` - benchmark symbol or empty string.
+- `benchmarks` - comma-separated available benchmark symbols, such as
+  `SPY,QQQ`.
 - `asOf` - latest source timestamp.
 - `tickerCount` - number of working symbols.
 - `portfolioIndex` - normalized portfolio index.
@@ -23,10 +25,12 @@ Required fields:
 - `highSignalCount` - number of high-severity signals.
 - `riskState` - user-facing state such as `Normal`, `Watch`, or `Alert`.
 - `missingSymbols` - comma-separated failed symbols, if any.
+- `missingBenchmarks` - comma-separated failed benchmark lookups, if any.
 
 ### `portfolio/equity`
 
-Time series for the normalized portfolio path.
+Time series for the normalized portfolio path. Keep this output for backward
+compatibility; new chart views should read `chart/series`.
 
 Required fields:
 
@@ -47,14 +51,18 @@ Required fields:
 - `benchmarkReturn1d`
 - `relativeReturn1d`
 - `medianAbsReturn60d`
-- `volumeRatio20d`
-- `rsi14`, `ma20`, `ma60`, `ma20DistancePct`
+- `volumeRatio20d`, `moveVsNormal`, `rangeRatio20d`
+- `rsi14`, `ma20`, `ma60`, `ma20DistancePct`, `ma60DistancePct`
 - `peRatio`, `marketCap`
-- `attentionScore`, `severity`, `state`
+- `attentionScore`, `technicalScore`, `primaryTechnicalDriver`
+- `technicalSummary`
+- `priceState`, `volumeState`, `trendState`, `volatilityState`
+- `severity`, `state`
 
 ### `history/prices`
 
-Daily rows for charting.
+Daily ticker rows for charting. Keep this output for backward compatibility;
+new chart views should read `chart/series`.
 
 Required fields:
 
@@ -62,6 +70,20 @@ Required fields:
 - `close`
 - `normalized`
 - `volume`
+
+### `chart/series`
+
+Unified normalized time series for the visual-first chart surface.
+
+Required fields:
+
+- `seriesType` - `portfolio`, `holding`, or `benchmark`.
+- `symbol` - `PORTFOLIO`, a ticker symbol, or benchmark symbol such as `SPY`.
+- `label` - user-facing series label.
+- `date`
+- `normalized`
+- `close` when available.
+- `weightPct` for holding series when available.
 
 ### `signals/events`
 
@@ -76,7 +98,10 @@ Required fields:
 - `title`
 - `reason`
 - `evidence`
+- `technicalSummary`
 - `triggerType`
+- `primaryTechnicalDriver`
+- `priceState`, `volumeState`, `trendState`, `volatilityState`
 - `portfolioImpactPct`
 - `metricValue`
 - `baseline`
@@ -147,6 +172,11 @@ confirmation was explicitly requested, `body` must contain
 - Use Data Skills, released feeds, or validated BYOD for all financial values.
 - Fetch current Data Skills endpoint docs before writing calls.
 - Use the feed as the single source of truth for HTML, README, and alerts.
+- Generate chart series for the portfolio, each working holding, and available
+  SPY / QQQ benchmarks. Do not render unavailable benchmark controls.
+- Technical analysis must expose price, volume, trend, and volatility states as
+  structured fields. Price abnormality remains the main trigger; volume, trend,
+  and volatility should confirm, contextualize, or weaken the signal.
 - Keep signal reasons short and evidence-backed.
 - Keep `alerts/decision` plain-language and user-facing. The page must not
   require users to translate severity bands, score thresholds, or quiet audit

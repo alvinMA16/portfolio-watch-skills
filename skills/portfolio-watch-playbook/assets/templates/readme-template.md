@@ -1,14 +1,15 @@
 # REPLACE_DISPLAY_NAME
 
 This Playbook watches `REPLACE_UNIVERSE` as a portfolio attention surface. It is
-designed to answer: which holdings deserve attention now, why, and whether the
-change is important enough to notify the user.
+designed to answer: do you need to review anything now, which holdings deserve
+attention, why, and whether the change is important enough to notify the user.
 
 ## Inputs and assumptions
 
 - Universe: `REPLACE_UNIVERSE`
 - Weights: `REPLACE_WEIGHTING_ASSUMPTION`
 - Benchmark: `REPLACE_BENCHMARK`
+- Chart benchmarks: `SPY`, `QQQ` when available from the deployed feed.
 - Refresh cadence: `REPLACE_CADENCE`
 - Alert sensitivity: `REPLACE_ALERT_SENSITIVITY`
 - Cost basis / realized P&L: `REPLACE_COST_BASIS_ASSUMPTION`
@@ -22,6 +23,8 @@ user explicitly connected an account or supplied holdings.
 Replace this section with only sources actually called and deployed:
 
 - Arrays stock kline for daily close, volume, and normalized price paths.
+- Arrays stock kline high/low/close/volume fields for price, volume, and
+  volatility states.
 - Arrays stock market metrics for RSI, moving averages, P/E, and market cap
   when available.
 - Arrays company detail for company name, sector, and industry.
@@ -30,6 +33,34 @@ Replace this section with only sources actually called and deployed:
 
 The Playbook reads feed outputs at runtime. Financial values are not embedded in
 the HTML.
+
+## First-screen answer
+
+The first screen starts with `Portfolio Attention Status`, which answers:
+
+- Overall status: `Green`, `Yellow`, or `Red`.
+- Today's answer for each working holding: `Review now`, `Digest-worthy`,
+  `Logged only`, or `No review needed`.
+- Why the signal did or did not require attention.
+- Last checked timestamp.
+- Next watch condition.
+
+Desktop shows the status panel beside the chart. Mobile shows the status panel
+first, then the chart immediately after it.
+
+## Visual exploration
+
+The chart is the evidence layer for the status answer. It shows the normalized
+portfolio path and lets the user switch between:
+
+- Portfolio: whole portfolio versus available benchmarks.
+- Tickers: one holding at a time, with optional benchmark overlays.
+- Compare: several holdings together, prioritized by attention score and
+  watch weight.
+
+SPY and QQQ are generated as benchmark series when coverage is available. The
+primary benchmark for relative-move scoring is `REPLACE_BENCHMARK` unless the
+generated build states otherwise.
 
 ## Attention methodology
 
@@ -45,6 +76,24 @@ The Playbook ranks attention signals using five concepts:
 Portfolio impact and abnormality dominate ranking. Catalysts such as news,
 ratings, options activity, social data, or macro context can boost severity only
 when the source is actually wired and verified.
+
+Technical context is summarized as four states:
+
+- Price: latest move versus the asset's own recent noise and the selected
+  benchmark.
+- Volume: latest volume versus the recent median.
+- Trend: close versus MA20/MA60 plus RSI stretch.
+- Volatility: latest move and intraday range versus recent norms.
+
+Price abnormality is the main trigger. Volume, trend, and volatility confirm or
+qualify the move; a volume-only event should not become high severity by itself.
+
+The Playbook separates two decisions:
+
+- Important to inspect: a signal belongs in `What matters now`.
+- Worth alerting: a signal cleared the higher bar for phone interruption.
+
+A medium signal can be useful context without being pushed to the user.
 
 ## Signal bands
 
@@ -87,11 +136,15 @@ thresholds, or repeated quiet audit rows.
 
 The Playbook contains:
 
-- Overview: portfolio state, returns, signal counts, assumptions.
-- Signal Queue: ranked attention events.
+- Portfolio Attention Status: the first-screen answer to whether review is
+  needed now.
+- Portfolio Trend: chart evidence for portfolio, holdings, SPY, and QQQ when
+  available.
+- What Matters Now: ranked attention events that deserve inspection.
+- Technical States: price, volume, trend, and volatility labels attached to
+  each attention event.
 - Signal Detail: evidence and reasoning for each signal.
 - Holdings State: all symbols, including non-alerting names.
-- Charts: portfolio and constituent paths from feed outputs.
 - Alert History: recent high-severity or quiet alert audit rows.
 - Alert Decision: the plain-language notification decision for the current
   run.
@@ -101,6 +154,7 @@ The Playbook contains:
 Replace this section with actual limits from the generated build:
 
 - Missing symbols: `REPLACE_MISSING_SYMBOLS`
+- Missing benchmark series: `REPLACE_MISSING_BENCHMARKS`
 - Data coverage limits: `REPLACE_DATA_LIMITS`
 - Cadence limits: `REPLACE_CADENCE_LIMITS`
 - Account/P&L limits: `REPLACE_ACCOUNT_LIMITS`

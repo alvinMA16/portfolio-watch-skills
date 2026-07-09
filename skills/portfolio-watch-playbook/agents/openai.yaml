@@ -1,4 +1,4 @@
 interface:
   display_name: "Portfolio Watch Playbook"
-  short_description: "Create alert-first portfolio watch Playbooks."
-  default_prompt: "Use $portfolio-watch-playbook to build an alert-first watch for MSFT, AMZN, and GOOGL."
+  short_description: "Create visual-first portfolio watch Playbooks."
+  default_prompt: "Use $portfolio-watch-playbook to build a visual-first watch for MSFT, AMZN, and GOOGL."

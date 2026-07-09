@@ -35,8 +35,8 @@ separate local checkout of the official Alva Skill.
 - Read `alva-platform/jagent-runtime.md`, `feed-sdk.md`,
   `feed-lifecycle.md`, and `deployment.md`.
 - Build outputs from `data-contract.md`: `portfolio/summary`,
-  `portfolio/equity`, `watch/assets`, `history/prices`, `signals/events`,
-  `alerts/events`, `alerts/decision`, and `notify/message`.
+  `portfolio/equity`, `watch/assets`, `history/prices`, `chart/series`,
+  `signals/events`, `alerts/events`, `alerts/decision`, and `notify/message`.
 - Run the exact ALFS script with `alva run --entry-path ...` after every
   meaningful change. Do not pass `initialConfirmation` during pre-subscription
   test runs; that mode is reserved for the first subscribed automation run.
@@ -50,10 +50,12 @@ separate local checkout of the official Alva Skill.
 
 - Read `alva-platform/playbook-creation.md`, `design.md`,
   `design-widgets.md`, and `user-facing-prose.md`.
-- Follow `ui-contract.md`: overview, signal queue, signal detail, holdings,
-  charts, alert decision, and alert history.
-- The first viewport must show the alert decision in plain language: whether a
-  notification was sent, why, and what to inspect next.
+- Follow `ui-contract.md`: Portfolio Attention Status, portfolio trend, what
+  matters now, overview, signal detail, holdings, and alert history.
+- The first viewport must answer whether the user needs to review anything now
+  and show the portfolio trend chart as immediate evidence, with usable
+  Portfolio / Tickers / Compare controls and SPY / QQQ benchmark toggles when
+  data exists.
 - HTML must use `AlvaToolkit.AlvaClient` for runtime reads.
 - Write HTML and README to `~/playbooks/<name>/`.
 - Draft with `alva release playbook-draft`.

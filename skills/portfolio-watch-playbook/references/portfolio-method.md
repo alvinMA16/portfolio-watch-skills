@@ -5,9 +5,10 @@ attention-triage Playbook. The goal is not to recommend trades; the goal is to
 show which holdings deserve attention now, why, and whether the user should be
 interrupted.
 
-The product output is a decision, not a score report. Scores, severity bands,
-and indicators are implementation details that support a plain-language answer:
-notify, watch quietly, or no action.
+The product output is a visual portfolio read, not a score report. Scores,
+severity bands, and indicators are implementation details that support two
+plain-language answers: what is important to inspect, and what is important
+enough to interrupt the user.
 
 ## Inputs
 
@@ -47,9 +48,11 @@ Required v1 dimensions:
 
 - Price action: latest close, 1D, 1W, 1M return, normalized path.
 - Relative performance: return versus the chosen benchmark when available.
-- Volatility / noise: recent median absolute daily move or equivalent baseline.
+- Volatility / noise: latest move versus recent median absolute daily move, and
+  latest intraday range versus recent range when high/low data is available.
 - Volume: today's volume versus recent median volume when available.
-- Trend: MA20, MA60, close-vs-MA20 distance, trend cross.
+- Trend: MA20, MA60, close-vs-MA20 distance, close-vs-MA60 distance, and trend
+  stretch.
 - Stretch: RSI 14 overbought / oversold state.
 - Portfolio impact: ticker return multiplied by watch or holding weight.
 - Context: company name, sector, industry, market cap, trailing P/E when
@@ -73,6 +76,24 @@ Optional dimensions when coverage is verified:
 Never rank only by largest percentage move. A smaller move in a large weight
 can outrank a larger move in a small weight. A volatile stock's ordinary move
 should not outrank a quiet stock's true anomaly.
+
+Technical analysis should read as `price + volume + trend + volatility`, not a
+raw indicator dump. Price abnormality and portfolio impact carry the alert bar.
+Volume, trend, and volatility explain whether the move is confirmed or noisy;
+they should not make a volume-only event high severity by themselves.
+
+## Visual Guidance
+
+Start with the normalized portfolio path, then let users choose constituent and
+benchmark context. The user should be able to inspect:
+
+- The whole portfolio versus SPY and QQQ.
+- One ticker at a time.
+- Several tickers together when comparing drivers.
+
+The chart is for macro orientation. The attention list explains what is worth
+reading. The alert decision explains whether any signal was worth interrupting
+the user. Keep these three jobs separate.
 
 ## Decision Guidance
 

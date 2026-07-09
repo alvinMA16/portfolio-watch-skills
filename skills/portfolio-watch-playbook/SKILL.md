@@ -1,15 +1,16 @@
 ---
 name: portfolio-watch-playbook
-description: Build reusable Alva Portfolio Watch Playbooks from a user's tickers, watchlist, holdings, or connected-account portfolio. Use when the user asks to keep an eye on a portfolio, monitor holdings, watch a basket, or ping/alert/notify them when something material happens. Produces an Alva Playbook with feed-backed data, an alert-first decision surface, scheduled refresh, quiet-by-default alerts, and notification deep links to matching signals.
+description: Build reusable Alva Portfolio Watch Playbooks from a user's tickers, watchlist, holdings, or connected-account portfolio. Use when the user asks to keep an eye on a portfolio, monitor holdings, watch a basket, or ping/alert/notify them when something material happens. Produces an Alva Playbook with feed-backed data, a visual-first portfolio trend surface, attention-ranked signals, scheduled refresh, quiet-by-default alerts, and notification deep links to matching signals.
 ---
 
 # Portfolio Watch Playbook
 
 Build a reusable Portfolio Watch Playbook, not a one-off ticker dashboard. Turn
 an incomplete user request into a running Alva workflow that normalizes the
-portfolio, computes attention-ranked signals, renders an alert-first Playbook
-that explains whether the user should care now, and pushes only high-confidence
-alerts that link back to the matching signal.
+portfolio, computes attention-ranked signals, renders a status-first Playbook
+that answers whether the user needs to review anything now with chart evidence
+beside or immediately after the answer, and pushes only high-confidence alerts
+that link back to the matching signal.
 
 ## Build Order
 
@@ -37,22 +38,31 @@ alerts that link back to the matching signal.
 
 ## Product North Star
 
-The first screen must answer in plain language:
+The first screen must answer: **Do you need to review anything now?** It should
+show, in this order:
 
-1. Was the user notified?
-2. Why was the user notified or not notified?
-3. What, if anything, should the user inspect next?
+1. Overall status: `Green`, `Yellow`, or `Red`.
+2. Today's answer for each working holding.
+3. Why the user does or does not need to pay attention now.
+4. Last checked timestamp and the next watch condition.
+5. The portfolio trend chart as immediate evidence.
 
-Do not make users infer this from `Watch`, `Medium`, score numbers, repeated
-quiet rows, or raw indicator tables. Those are drill-down details, not the
-primary experience.
+On desktop, keep the attention status and trend chart in the same first
+viewport. On mobile, show the attention status first and the chart immediately
+after it. Do not make users start with `Watch`, `Medium`, score numbers,
+repeated quiet rows, or raw indicator tables. Charts remain the evidence layer;
+the primary product answer is whether review is needed now.
 
 ## Defaults
 
 - Market: US equities unless the user clearly supplies another covered market.
 - Weights: use provided weights; otherwise use equal-weight watch weights and
   label the assumption in the interface and README.
-- Benchmark: default to `SPY`; optionally add `QQQ` for tech-heavy portfolios.
+- Benchmarks: default to `SPY` and `QQQ` for chart comparison. Use `SPY` as the
+  primary benchmark for relative-move scoring unless the user specifies another
+  primary benchmark.
+- Chart range: default the first-screen trend chart to `3M`. Offer `1M`, `3M`,
+  `6M`, and `All` controls when chart history supports them.
 - Alert sensitivity: default to balanced.
 - Cost basis / realized P&L: omit unless the user supplies account or cost
   data. Do not infer it.

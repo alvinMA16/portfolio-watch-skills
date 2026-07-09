@@ -23,24 +23,33 @@
         box-sizing: border-box;
         letter-spacing: 0;
       }
+      button,
+      input {
+        font: inherit;
+      }
       .playbook-container {
         width: 100%;
+        max-width: 100%;
         margin: 0 auto;
         padding: var(--spacing-s) var(--spacing-xxl) var(--spacing-xxxxl);
       }
       .status-strip,
-      .pill-row {
+      .pill-row,
+      .control-row,
+      .chip-row {
         display: flex;
         flex-wrap: wrap;
         align-items: center;
         gap: var(--spacing-xs);
       }
       .status-strip {
-        margin-bottom: var(--spacing-xl);
+        margin-bottom: var(--spacing-m);
       }
       .pill {
         display: inline-flex;
         align-items: center;
+        flex: 0 0 auto;
+        max-width: 100%;
         min-height: 24px;
         padding: var(--spacing-xxxs) var(--spacing-xs);
         border-radius: var(--radius-ct-s);
@@ -51,100 +60,321 @@
       }
       .grid {
         display: grid;
-        grid-template-columns: repeat(8, minmax(0, 1fr));
+        grid-template-columns: repeat(12, minmax(0, 1fr));
         gap: var(--spacing-xl);
         align-items: stretch;
       }
-      .col-2 { grid-column: span 2; }
+      .col-3 { grid-column: span 3; }
       .col-4 { grid-column: span 4; }
+      .col-6 { grid-column: span 6; }
       .col-8 { grid-column: span 8; }
+      .col-12 { grid-column: span 12; }
       .panel {
-        display: flex;
-        flex-direction: column;
         min-width: 0;
       }
-      .panel-title {
+      .section-title {
         display: flex;
-        align-items: center;
+        align-items: flex-end;
         justify-content: space-between;
         gap: var(--spacing-m);
         margin-bottom: var(--spacing-m);
       }
-      .panel-title-text {
+      .section-title-text {
         font-size: 16px;
         line-height: 26px;
         font-weight: 400;
         color: var(--text-n9);
       }
-      .panel-meta {
+      .section-meta {
         font-size: 12px;
         line-height: 20px;
         color: var(--text-n5);
         white-space: nowrap;
       }
-      .metric-box,
-      .surface {
+      .visual-stage {
+        display: grid;
+        grid-template-columns: minmax(320px, 380px) minmax(0, 1fr);
+        gap: var(--spacing-xl);
+        align-items: start;
+        margin-bottom: var(--spacing-xxl);
+        max-width: 100%;
+      }
+      .chart-panel {
+        min-width: 0;
+        max-width: 100%;
+      }
+      .chart-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: stretch;
+        justify-content: space-between;
+        gap: var(--spacing-s);
+        padding: var(--spacing-xs);
+        border: 1px solid var(--line-l05);
+        border-radius: var(--radius-ct-s);
+        background: var(--grey-g01);
+        margin-bottom: var(--spacing-m);
+        max-width: 100%;
+      }
+      .control-group {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        min-width: 0;
+        max-width: 100%;
+      }
+      .benchmark-group {
+        margin-left: auto;
+      }
+      .control-label {
+        flex: 0 0 auto;
+        font-size: 11px;
+        line-height: 18px;
+        color: var(--text-n5);
+      }
+      .segmented {
+        display: inline-flex;
+        align-items: center;
+        padding: 3px;
+        border-radius: var(--radius-ct-s);
+        background: var(--b0-page);
+        gap: 2px;
+      }
+      .segment {
+        border: 0;
+        border-radius: var(--radius-ct-s);
+        background: transparent;
+        color: var(--text-n7);
+        cursor: pointer;
+        min-width: 0;
+      }
+      .segment {
+        min-height: 30px;
+        padding: 0 var(--spacing-m);
+        font-size: 13px;
+        line-height: 20px;
+      }
+      .segment.is-active {
+        background: var(--main-m1);
+        color: var(--b0-page);
+      }
+      .segment:focus-visible,
+      .decision-action:focus-visible,
+      .checkbox-pill input:focus-visible {
+        outline: 2px solid var(--main-m1);
+        outline-offset: 2px;
+      }
+      .checkbox-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+        max-width: 100%;
+        min-height: 28px;
+        padding: 0 var(--spacing-xs);
+        border-radius: var(--radius-ct-s);
+        border: 1px solid transparent;
+        background: var(--b0-page);
+        color: var(--text-n7);
+        font-size: 12px;
+        line-height: 20px;
+        cursor: pointer;
+      }
+      .checkbox-pill.is-active {
+        border-color: var(--line-l9);
+        color: var(--text-n9);
+      }
+      .checkbox-pill input {
+        width: 14px;
+        height: 14px;
+        margin: 0;
+        accent-color: var(--main-m1);
+      }
+      .chart-shell {
+        min-height: 420px;
+        padding: var(--spacing-s) 0 0;
+      }
+      .trend-chart-container {
+        width: 100%;
+        height: 400px;
+      }
+      .attention-panel {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-m);
+        min-width: 0;
+      }
+      .attention-card {
+        min-width: 0;
+        max-width: 100%;
+        padding: var(--spacing-l);
         background: var(--grey-g01);
         border-radius: var(--radius-ct-s);
       }
-      .metric-box {
-        min-height: 128px;
-        padding: var(--spacing-l);
+      .attention-kicker {
+        font-size: 12px;
+        line-height: 20px;
+        color: var(--text-n7);
+      }
+      .attention-question {
+        margin-top: var(--spacing-xxs);
+        font-size: 24px;
+        line-height: 32px;
+        font-weight: 400;
+        color: var(--text-n9);
+        overflow-wrap: anywhere;
+      }
+      .attention-status-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: var(--spacing-m);
+        margin-top: var(--spacing-l);
+      }
+      .attention-status-row > * {
+        min-width: 0;
+      }
+      .status-badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        padding: var(--spacing-xxxs) var(--spacing-xs);
+        border-radius: var(--radius-ct-min);
+        font-size: 11px;
+        line-height: 16px;
+        text-transform: uppercase;
+        background: var(--line-l05);
+        color: var(--text-n7);
+      }
+      .status-badge.green {
+        color: var(--main-m3);
+      }
+      .status-badge.yellow {
+        color: var(--main-m1);
+      }
+      .status-badge.red {
+        color: var(--main-m4);
+      }
+      .overall-status {
+        min-width: 0;
+      }
+      .overall-label {
+        font-size: 18px;
+        line-height: 28px;
+        color: var(--text-n9);
+      }
+      .overall-subtitle,
+      .why-text,
+      .next-watch-text {
+        margin-top: var(--spacing-xs);
+        font-size: 13px;
+        line-height: 21px;
+        color: var(--text-n7);
+        overflow-wrap: anywhere;
+      }
+      .answer-list {
         display: flex;
         flex-direction: column;
-        justify-content: space-between;
+        gap: var(--spacing-xs);
+        margin-top: var(--spacing-s);
       }
-      .metric-label {
+      .answer-heading {
+        margin-top: var(--spacing-l);
+      }
+      .answer-row {
+        display: grid;
+        grid-template-columns: 64px minmax(0, 1fr);
+        gap: var(--spacing-s);
+        align-items: start;
+        padding-top: var(--spacing-xs);
+        border-top: 1px solid var(--line-l03);
+      }
+      .answer-row > * {
+        min-width: 0;
+      }
+      .answer-symbol {
+        font-size: 13px;
+        line-height: 21px;
+        color: var(--text-n9);
+      }
+      .answer-state {
+        font-size: 13px;
+        line-height: 21px;
+        color: var(--text-n9);
+        overflow-wrap: anywhere;
+      }
+      .answer-detail {
+        margin-top: 2px;
+        font-size: 12px;
+        line-height: 18px;
+        color: var(--text-n5);
+        overflow-wrap: anywhere;
+      }
+      .attention-meta-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: var(--spacing-m);
+        margin-top: var(--spacing-l);
+      }
+      .attention-meta-label {
+        font-size: 11px;
+        line-height: 18px;
+        color: var(--text-n5);
+      }
+      .summary-block,
+      .ping-block,
+      .empty-block,
+      .signal-card,
+      .detail-card,
+      .alert-card,
+      .watch-table-surface {
+        background: var(--grey-g01);
+        border-radius: var(--radius-ct-s);
+      }
+      .summary-block,
+      .ping-block,
+      .empty-block {
+        padding: var(--spacing-l);
+      }
+      .empty-block {
+        grid-column: 1 / -1;
+      }
+      .metric-label,
+      .small-label {
         font-size: 12px;
         line-height: 20px;
         color: var(--text-n7);
       }
       .metric-value {
         margin-top: var(--spacing-xxs);
-        font-size: 28px;
-        line-height: 36px;
+        font-size: 30px;
+        line-height: 38px;
         font-weight: 400;
         color: var(--text-n9);
+      }
+      .metric-caption,
+      .detail-text,
+      .signal-reason,
+      .tech-summary {
+        font-size: 13px;
+        line-height: 21px;
+        color: var(--text-n7);
+        overflow-wrap: anywhere;
       }
       .metric-caption {
         margin-top: var(--spacing-xxs);
-        font-size: 12px;
-        line-height: 20px;
-        color: var(--text-n5);
       }
-      .is-up { color: var(--main-m3); }
-      .is-down { color: var(--main-m4); }
-      .is-neutral { color: var(--text-n9); }
-      .signal-list {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: var(--spacing-m);
-      }
-      .decision-box {
-        background: var(--grey-g01);
-        border-radius: var(--radius-ct-s);
-        padding: var(--spacing-xl);
-        display: grid;
-        grid-template-columns: 1.5fr 1fr;
-        gap: var(--spacing-xl);
-        align-items: start;
-      }
-      .decision-kicker {
-        font-size: 12px;
-        line-height: 20px;
-        color: var(--text-n7);
-      }
-      .decision-title {
+      .ping-title {
         margin-top: var(--spacing-xxs);
-        font-size: 28px;
-        line-height: 36px;
+        font-size: 18px;
+        line-height: 28px;
         font-weight: 400;
         color: var(--text-n9);
       }
-      .decision-body {
+      .ping-body {
         margin-top: var(--spacing-xs);
-        font-size: 14px;
-        line-height: 22px;
+        font-size: 13px;
+        line-height: 21px;
         color: var(--text-n7);
       }
       .decision-action {
@@ -152,24 +382,27 @@
         border: 0;
         background: transparent;
         color: var(--main-m1);
-        font: inherit;
-        font-size: 14px;
-        line-height: 22px;
+        font-size: 13px;
+        line-height: 21px;
         padding: 0;
         cursor: pointer;
       }
-      .decision-facts {
-        display: flex;
-        flex-wrap: wrap;
-        gap: var(--spacing-xs);
+      .is-up { color: var(--main-m3); }
+      .is-down { color: var(--main-m4); }
+      .is-neutral { color: var(--text-n9); }
+      .signal-list,
+      .detail-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: var(--spacing-m);
       }
-      .signal-card {
+      .signal-card,
+      .detail-card,
+      .alert-card {
         min-width: 0;
         padding: var(--spacing-m);
-        border-radius: var(--radius-ct-s);
-        background: var(--grey-g01);
-        text-decoration: none;
         color: inherit;
+        text-decoration: none;
       }
       .signal-top {
         display: flex;
@@ -184,7 +417,10 @@
         color: var(--text-n7);
       }
       .severity {
-        padding: 2px 6px;
+        display: inline-flex;
+        align-items: center;
+        min-height: 20px;
+        padding: 0 7px;
         border-radius: var(--radius-ct-min);
         font-size: 11px;
         line-height: 16px;
@@ -204,50 +440,181 @@
         color: var(--text-n9);
         margin-bottom: var(--spacing-xxs);
       }
-      .signal-reason,
-      .detail-text {
+      .tech-chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin: var(--spacing-xs) 0;
+      }
+      .tech-chip {
+        display: inline-flex;
+        align-items: center;
+        min-height: 22px;
+        padding: 0 var(--spacing-xs);
+        border-radius: var(--radius-ct-min);
+        background: var(--b0-page);
+        color: var(--text-n7);
+        font-size: 11px;
+        line-height: 16px;
+        white-space: nowrap;
+      }
+      .tech-chip-label {
+        color: var(--text-n5);
+        margin-right: 4px;
+      }
+      .tech-summary {
+        margin-top: var(--spacing-xs);
+      }
+      .watch-table-surface {
+        overflow-x: auto;
+      }
+      .watch-table-row {
+        display: flex;
+        gap: var(--spacing-m);
+        padding: 0 var(--spacing-m);
+        min-height: 40px;
+        align-items: center;
+      }
+      .table-header {
+        color: var(--text-n5);
+        font-size: 12px;
+        line-height: 20px;
+      }
+      .table-body-row {
+        color: var(--text-n8);
         font-size: 13px;
         line-height: 21px;
-        color: var(--text-n7);
+        border-top: 1px solid var(--line-l03);
       }
-      .detail-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: var(--spacing-m);
+      .watch-table-cell {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
-      .detail-card,
-      .alert-card {
-        padding: var(--spacing-m);
-        border-radius: var(--radius-ct-s);
-        background: var(--grey-g01);
+      .watch-table-cell.is-technical {
+        min-width: 260px;
+        max-width: 420px;
+        white-space: normal;
+        overflow: visible;
+      }
+      .tech-cell-title {
+        color: var(--text-n9);
+        line-height: 21px;
+      }
+      .tech-cell-sub {
+        margin-top: 2px;
+        color: var(--text-n5);
+        font-size: 12px;
+        line-height: 18px;
+      }
+      .ticker-controls {
+        margin-top: var(--spacing-s);
       }
       .error-box {
         display: none;
-        margin-bottom: var(--spacing-xl);
+        margin-bottom: var(--spacing-m);
         padding: var(--spacing-m);
         border-radius: var(--radius-ct-s);
         background: var(--grey-g01);
         color: var(--main-m4);
-        font-size: 14px;
-        line-height: 22px;
+        font-size: 13px;
+        line-height: 21px;
       }
-      @media (max-width: 900px) {
+      @media (max-width: 980px) {
         .playbook-container {
-          padding: var(--spacing-m);
+          padding: var(--spacing-s) var(--spacing-l) var(--spacing-xxxl);
+        }
+        .status-strip {
+          display: none;
         }
         .grid {
           grid-template-columns: repeat(4, minmax(0, 1fr));
           gap: var(--spacing-l);
         }
-        .col-2,
+        .col-3,
         .col-4,
-        .col-8 {
+        .col-6,
+        .col-8,
+        .col-12 {
           grid-column: span 4;
         }
-        .signal-list,
-        .detail-grid,
-        .decision-box {
+        .visual-stage {
           grid-template-columns: 1fr;
+        }
+        .attention-question {
+          font-size: 20px;
+          line-height: 28px;
+        }
+        .attention-status-row {
+          flex-direction: column;
+          gap: var(--spacing-s);
+        }
+        .chart-toolbar {
+          display: grid;
+          grid-template-columns: 1fr;
+          justify-content: flex-start;
+        }
+        .control-group,
+        .segmented {
+          flex-wrap: wrap;
+        }
+        .control-group {
+          width: 100%;
+        }
+        .segmented {
+          max-width: 100%;
+        }
+        .segment {
+          min-width: 0;
+        }
+        .benchmark-group {
+          margin-left: 0;
+        }
+        .trend-chart-container {
+          height: 360px;
+        }
+        .chart-shell {
+          min-height: 380px;
+        }
+        .signal-list,
+        .detail-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (max-width: 520px) {
+        .playbook-container {
+          padding: var(--spacing-s) var(--spacing-s) var(--spacing-xxxl);
+        }
+        .attention-card {
+          padding: var(--spacing-m);
+        }
+        .answer-row {
+          grid-template-columns: 52px minmax(0, 1fr);
+          gap: var(--spacing-xs);
+        }
+        .control-group {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+        .segmented,
+        .control-row {
+          width: 100%;
+        }
+        .segmented {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(68px, 1fr));
+        }
+        .segment {
+          flex: 1 1 64px;
+          padding: 0 var(--spacing-s);
+        }
+        .checkbox-pill {
+          flex: 1 1 88px;
+          justify-content: center;
+        }
+        .chart-toolbar {
+          overflow: hidden;
         }
       }
     </style>
@@ -259,102 +626,89 @@
       </div>
       <div class="error-box" id="errorBox"></div>
 
-      <section class="grid" aria-label="Portfolio watch">
-        <div class="panel col-8" id="decisionPanel">
-          <div class="panel-title">
-            <span class="panel-title-text">Notification Decision</span>
-            <span class="panel-meta" id="decisionStamp"></span>
-          </div>
-          <div class="decision-box">
-            <div>
-              <div class="decision-kicker" id="decisionState">...</div>
-              <div class="decision-title" id="decisionTitle">...</div>
-              <div class="decision-body" id="decisionBody">...</div>
-              <button class="btn btn-secondary btn-small decision-action" type="button" id="decisionAction">...</button>
-            </div>
-            <div class="decision-facts" id="decisionFacts"></div>
-          </div>
-        </div>
+      <section class="visual-stage" aria-label="Portfolio attention status">
+        <aside class="attention-panel" aria-label="Portfolio Attention Status">
+          <div class="attention-card">
+            <div class="attention-kicker">Portfolio Attention Status</div>
+            <h1 class="attention-question">Do you need to review anything now?</h1>
 
-        <div class="panel col-2">
-          <div class="panel-title"><span class="panel-title-text">State</span></div>
-          <div class="metric-box">
-            <div>
-              <div class="metric-label">Portfolio attention</div>
-              <div class="metric-value" id="kpiState">...</div>
+            <div class="attention-status-row">
+              <div class="overall-status">
+                <div class="attention-meta-label">Overall status</div>
+                <div class="overall-label" id="overallStatus">...</div>
+                <div class="overall-subtitle" id="overallSubtitle">...</div>
+              </div>
+              <span class="status-badge" id="overallBadge">...</span>
             </div>
-            <div class="metric-caption" id="kpiSignals">...</div>
-          </div>
-        </div>
-        <div class="panel col-2">
-          <div class="panel-title"><span class="panel-title-text">1D</span></div>
-          <div class="metric-box">
-            <div>
-              <div class="metric-label">Weighted move</div>
-              <div class="metric-value" id="kpi1d">...</div>
-            </div>
-            <div class="metric-caption" id="kpiBenchmark">...</div>
-          </div>
-        </div>
-        <div class="panel col-2">
-          <div class="panel-title"><span class="panel-title-text">1M</span></div>
-          <div class="metric-box">
-            <div>
-              <div class="metric-label">Weighted move</div>
-              <div class="metric-value" id="kpi1m">...</div>
-            </div>
-            <div class="metric-caption">Latest complete bars</div>
-          </div>
-        </div>
-        <div class="panel col-2">
-          <div class="panel-title"><span class="panel-title-text">Universe</span></div>
-          <div class="metric-box">
-            <div>
-              <div class="metric-label">Working symbols</div>
-              <div class="metric-value" id="kpiCount">...</div>
-            </div>
-            <div class="metric-caption" id="kpiMissing">...</div>
-          </div>
-        </div>
 
-        <div class="panel col-8" id="signals">
-          <div class="panel-title">
-            <span class="panel-title-text">Signal Queue</span>
-            <span class="panel-meta" id="signalStamp"></span>
+            <div class="attention-meta-label answer-heading">Today’s answer</div>
+            <div class="answer-list" id="todayAnswers"></div>
+
+            <div class="attention-meta-grid">
+              <div>
+                <div class="attention-meta-label">Why</div>
+                <div class="why-text" id="attentionWhy">...</div>
+              </div>
+              <div>
+                <div class="attention-meta-label">Last checked</div>
+                <div class="why-text" id="lastChecked">...</div>
+              </div>
+              <div>
+                <div class="attention-meta-label">Next watch</div>
+                <div class="next-watch-text" id="nextWatch">...</div>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <div class="chart-panel">
+          <div class="chart-toolbar" aria-label="Trend chart controls">
+            <div class="control-group">
+              <span class="control-label">View</span>
+              <div class="segmented" id="modeTabs" aria-label="Chart mode"></div>
+            </div>
+            <div class="control-group">
+              <span class="control-label">Range</span>
+              <div class="segmented" id="rangeTabs" aria-label="Chart range"></div>
+            </div>
+            <div class="control-group benchmark-group">
+              <span class="control-label">Benchmark</span>
+              <div class="control-row" id="benchmarkControls" aria-label="Benchmark controls"></div>
+            </div>
+          </div>
+          <div class="chart-shell">
+            <div id="trendChart" class="trend-chart-container"></div>
+          </div>
+          <div class="ticker-controls">
+            <div class="chip-row" id="tickerControls" aria-label="Ticker controls"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid" aria-label="Portfolio watch details">
+        <div class="panel col-12" id="signals">
+          <div class="section-title">
+            <span class="section-title-text">What matters now</span>
+            <span class="section-meta" id="signalStamp"></span>
           </div>
           <div class="signal-list" id="signalList"></div>
         </div>
 
-        <div class="panel col-4">
-          <div class="panel-title">
-            <span class="panel-title-text">Portfolio Path</span>
-            <span class="panel-meta" id="equityStamp"></span>
+        <div class="panel col-12">
+          <div class="section-title">
+            <span class="section-title-text">Holdings state</span>
+            <span class="section-meta" id="tableStamp"></span>
           </div>
-          <div class="chart-body chart-dotted-background"><div id="equityChart" class="chart-container" style="width:100%;height:320px;"></div></div>
-        </div>
-        <div class="panel col-4">
-          <div class="panel-title">
-            <span class="panel-title-text">Constituent Paths</span>
-            <span class="panel-meta" id="priceStamp"></span>
-          </div>
-          <div class="chart-body chart-dotted-background"><div id="priceChart" class="chart-container" style="width:100%;height:320px;"></div></div>
+          <div class="watch-table-surface" id="assetTable"></div>
         </div>
 
-        <div class="panel col-8">
-          <div class="panel-title">
-            <span class="panel-title-text">Holdings State</span>
-            <span class="panel-meta" id="tableStamp"></span>
-          </div>
-          <div class="table-card" id="assetTable"></div>
-        </div>
-
-        <div class="panel col-8">
-          <div class="panel-title"><span class="panel-title-text">Signal Detail</span></div>
+        <div class="panel col-6">
+          <div class="section-title"><span class="section-title-text">Signal detail</span></div>
           <div class="detail-grid" id="signalDetails"></div>
         </div>
 
-        <div class="panel col-8">
-          <div class="panel-title"><span class="panel-title-text">Alert History</span></div>
+        <div class="panel col-6">
+          <div class="section-title"><span class="section-title-text">Alert history</span></div>
           <div class="detail-grid" id="alertHistory"></div>
         </div>
       </section>
@@ -369,16 +723,37 @@
       }
       const PATHS = {
         summary: feedPath("portfolio", "summary", "@last/1"),
-        equity: feedPath("portfolio", "equity", "@last/260"),
         assets: feedPath("watch", "assets", "@last/1"),
-        prices: feedPath("history", "prices", "@last/260"),
+        chartSeries: feedPath("chart", "series", "@last/260"),
         signals: feedPath("signals", "events", "@last/1"),
         alerts: feedPath("alerts", "events", "@last/5"),
         decision: feedPath("alerts", "decision", "@last/1"),
       };
-      const PALETTE = ["#49a3a6", "#e05f55", "#5f75c9", "#7d9f55", "#b86aa8", "#d39b42", "#627c91"];
+      const PALETTE = ["#2f8f9d", "#d96b5f", "#5e72c8", "#78994e", "#b565a7", "#c48c3f", "#60798d"];
       const FONT = "'Delight', -apple-system, 'OPPO Sans 4.0', BlinkMacSystemFont, sans-serif";
-      let charts = [];
+      const MODES = [
+        { key: "portfolio", label: "Portfolio" },
+        { key: "tickers", label: "Tickers" },
+        { key: "compare", label: "Compare" },
+      ];
+      const RANGES = [
+        { key: "1m", label: "1M", months: 1 },
+        { key: "3m", label: "3M", months: 3 },
+        { key: "6m", label: "6M", months: 6 },
+        { key: "all", label: "All", months: null },
+      ];
+      const state = {
+        mode: "portfolio",
+        range: "3m",
+        benchmarks: new Set(),
+        benchmarkDefaultsApplied: false,
+        selectedTicker: "",
+        comparedTickers: new Set(),
+      };
+      let trendChart = null;
+      let allChartRows = [];
+      let allAssets = [];
+      let allSignals = [];
 
       function createAlvaClientConfig() {
         const params = new URLSearchParams(window.location.search);
@@ -447,8 +822,10 @@
         if (Number.isNaN(date.getTime())) return String(value).slice(0, 10);
         return date.toLocaleString("en-US", { hour12: false, month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" });
       }
-      function colorFor(symbol, symbols) {
-        return PALETTE[Math.max(0, symbols.indexOf(symbol)) % PALETTE.length];
+      function colorFor(row, index) {
+        if (row.seriesType === "portfolio") return "#1f8f86";
+        if (row.seriesType === "benchmark") return row.symbol === "SPY" ? "#6f747c" : "#9a7c40";
+        return PALETTE[index % PALETTE.length];
       }
       function setMetric(id, value, className) {
         const el = document.getElementById(id);
@@ -456,65 +833,354 @@
         el.classList.remove("is-up", "is-down", "is-neutral");
         el.classList.add(className || "is-neutral");
       }
-
+      function uniqueSymbols(rows, type) {
+        return Array.from(new Set(rows.filter((row) => row.seriesType === type).map((row) => row.symbol))).sort();
+      }
+      function rowDateMs(row) {
+        if (typeof row.date === "number" && Number.isFinite(row.date)) return row.date;
+        const parsed = Date.parse(row.date);
+        return Number.isFinite(parsed) ? parsed : null;
+      }
+      function selectedRangeStartMs() {
+        const range = RANGES.find((item) => item.key === state.range);
+        if (!range || range.months === null) return null;
+        const dates = allChartRows.map(rowDateMs).filter((value) => value !== null);
+        if (!dates.length) return null;
+        const start = new Date(Math.max(...dates));
+        start.setMonth(start.getMonth() - range.months);
+        return start.getTime();
+      }
+      function assetOrder() {
+        const byScore = {};
+        allSignals.forEach((signal) => {
+          byScore[signal.symbol] = Math.max(byScore[signal.symbol] || 0, signal.score || 0);
+        });
+        return allAssets.slice().sort((a, b) => {
+          const scoreDiff = (byScore[b.symbol] || 0) - (byScore[a.symbol] || 0);
+          if (scoreDiff) return scoreDiff;
+          return (b.watchWeightPct || 0) - (a.watchWeightPct || 0);
+        }).map((row) => row.symbol);
+      }
+      function rowsForSeries(seriesType, symbol) {
+        const startMs = selectedRangeStartMs();
+        return allChartRows
+          .filter((row) => row.seriesType === seriesType && row.symbol === symbol && typeof row.normalized === "number")
+          .filter((row) => {
+            const dateMs = rowDateMs(row);
+            return dateMs !== null && (startMs === null || dateMs >= startMs);
+          })
+          .sort((a, b) => rowDateMs(a) - rowDateMs(b));
+      }
+      function riskStateLabel(value) {
+        return value || "--";
+      }
       function renderSummary(summary) {
+        const benchmarkText = summary.benchmarks ? `Benchmarks ${summary.benchmarks}` : "No benchmark series";
         document.getElementById("statusStrip").innerHTML =
           `<span class="pill">${escapeHtml(summary.universe || "")}</span>` +
           `<span class="pill">${escapeHtml(summary.weighting || "")}</span>` +
-          `<span class="pill">As of ${escapeHtml(fmtDate(summary.asOf))}</span>`;
-        setMetric("kpiState", summary.riskState || "--", summary.riskState === "Alert" ? "is-down" : "is-neutral");
-        setMetric("kpi1d", fmtPct(summary.return1d), clsFor(summary.return1d));
-        setMetric("kpi1m", fmtPct(summary.return1m), clsFor(summary.return1m));
-        setMetric("kpiCount", fmtNumber(summary.tickerCount, 0), "is-neutral");
-        document.getElementById("kpiSignals").textContent = `${summary.highSignalCount || 0} high · ${summary.attentionCount || 0} total`;
-        document.getElementById("kpiBenchmark").textContent = summary.benchmark ? `Benchmark ${summary.benchmark}` : "No benchmark";
-        document.getElementById("kpiMissing").textContent = summary.missingSymbols ? `Missing: ${summary.missingSymbols}` : "No missing symbols";
+          `<span class="pill">${escapeHtml(benchmarkText)}</span>` +
+          `<span class="pill">As of ${escapeHtml(fmtDate(summary.asOf))}</span>` +
+          (summary.missingBenchmarks ? `<span class="pill">Missing benchmarks: ${escapeHtml(summary.missingBenchmarks)}</span>` : "");
       }
-
-      function renderDecision(decision) {
-        document.getElementById("decisionStamp").textContent = fmtDate(decision.asOf);
-        document.getElementById("decisionState").textContent = String(decision.notificationState || "quiet").toUpperCase();
-        document.getElementById("decisionTitle").textContent = decision.decisionTitle || "No ping sent";
-        document.getElementById("decisionBody").textContent = decision.decisionBody || "No high-severity signal fired in this run.";
-        const action = document.getElementById("decisionAction");
-        action.textContent = decision.nextAction || "No action needed.";
-        action.dataset.target = decision.deepLinkAnchor || "signals";
-        action.onclick = () => {
-          const target = document.getElementById(action.dataset.target);
-          if (target) target.scrollIntoView({ block: "start", behavior: "smooth" });
+      function attentionStatusModel(summary, decision, signals) {
+        const state = String(decision.notificationState || "quiet");
+        const highCount = summary.highSignalCount || signals.filter((row) => row.severity === "high").length;
+        const attentionCount = summary.attentionCount || signals.filter((row) => row.severity === "high" || row.severity === "medium").length;
+        if (state === "sent" || highCount > 0 || summary.riskState === "Alert") {
+          const symbol = decision.topSymbol && decision.topSymbol !== "PORTFOLIO" ? decision.topSymbol : signals.find((row) => row.severity === "high")?.symbol;
+          return {
+            color: "red",
+            badge: "Red",
+            label: attentionCount > 1 ? "Portfolio risk elevated" : `Review ${symbol || "portfolio"} now`,
+            subtitle: "Review trigger fired",
+          };
+        }
+        if (state === "watch" || attentionCount > 0 || summary.riskState === "Watch") {
+          return {
+            color: "yellow",
+            badge: "Yellow",
+            label: attentionCount > 1 ? "Portfolio risk elevated" : "Digest-worthy changes",
+            subtitle: "Worth reading in the Playbook, but below the ping bar",
+          };
+        }
+        return {
+          color: "green",
+          badge: "Green",
+          label: "No urgent review needed",
+          subtitle: "No holding crossed the review trigger in this run",
         };
-        document.getElementById("decisionFacts").innerHTML =
-          `<span class="pill">Top ${escapeHtml(decision.topSymbol || "PORTFOLIO")}</span>` +
-          `<span class="pill">${escapeHtml(decision.topSeverity || "quiet")}</span>` +
-          `<span class="pill">Score ${fmtNumber(decision.score, 0)} / ${fmtNumber(decision.threshold, 0)}</span>` +
-          `<span class="pill">Impact ${fmtPct(decision.portfolioImpactPct)}</span>` +
-          `<span class="pill">${escapeHtml(decision.nextTrigger || "")}</span>`;
       }
+      function answerForAsset(asset, signal) {
+        const severity = signal ? signal.severity : asset.severity;
+        if (severity === "high") return { label: "Review now", className: "is-down" };
+        if (severity === "medium") return { label: "Digest-worthy", className: "is-neutral" };
+        if (signal && signal.score > 0) return { label: "Logged only", className: "is-neutral" };
+        return { label: "No review needed", className: "is-neutral" };
+      }
+      function buildNextWatch(summary, decision, signals) {
+        const top = signals.slice().sort((a, b) => (b.score || 0) - (a.score || 0))[0];
+        if (top && (top.severity === "high" || top.severity === "medium")) {
+          const driver = top.primaryTechnicalDriver || top.triggerType || "price action";
+          return `${top.symbol} ${driver} expanding further, or portfolio impact rising to the alert bar.`;
+        }
+        const threshold = typeof decision.threshold === "number" ? `attention score >= ${fmtNumber(decision.threshold, 0)}` : "a high-severity signal";
+        return `An abnormal holding move confirmed by volume, trend, or volatility, or several holdings weakening together. The next ping needs ${threshold} and must not be a duplicate.`;
+      }
+      function renderAttentionStatus(summary, decision, assets, signals) {
+        const model = attentionStatusModel(summary, decision, signals);
+        const badge = document.getElementById("overallBadge");
+        badge.textContent = model.badge;
+        badge.classList.remove("green", "yellow", "red");
+        badge.classList.add(model.color);
+        document.getElementById("overallStatus").textContent = model.label;
+        document.getElementById("overallSubtitle").textContent =
+          `${model.subtitle} · ${riskStateLabel(summary.riskState)} · 1D ${fmtPct(summary.return1d)} / 1M ${fmtPct(summary.return1m)}`;
+        document.getElementById("attentionWhy").textContent = decision.decisionBody || "No high-severity signal fired in this run.";
+        document.getElementById("lastChecked").textContent = fmtDate(summary.asOf || decision.asOf);
+        document.getElementById("nextWatch").textContent = buildNextWatch(summary, decision, signals);
 
-      function renderSignals(signals) {
-        const sorted = signals.slice().sort((a, b) => (b.score || 0) - (a.score || 0)).slice(0, 6);
-        document.getElementById("signalStamp").textContent = sorted.length ? fmtDate(sorted[0].asOf) : "";
-        document.getElementById("signalList").innerHTML = sorted.map((row) => {
-          const anchor = row.deepLinkAnchor || `signal-${row.signalId}`;
-          return `<a class="signal-card" href="#${escapeHtml(anchor)}">` +
-            `<div class="signal-top"><span class="signal-symbol">${escapeHtml(row.symbol)}</span><span class="severity ${escapeHtml(row.severity)}">${escapeHtml(row.severity)}</span></div>` +
-            `<div class="signal-title">${escapeHtml(row.title)}</div>` +
-            `<div class="signal-reason">${escapeHtml(row.reason)}</div>` +
-            `<div class="metric-caption">Impact ${fmtPct(row.portfolioImpactPct)} · Score ${fmtNumber(row.score, 0)}</div>` +
-            `</a>`;
+        const signalBySymbol = {};
+        signals.forEach((signal) => {
+          if (!signalBySymbol[signal.symbol] || (signal.score || 0) > (signalBySymbol[signal.symbol].score || 0)) {
+            signalBySymbol[signal.symbol] = signal;
+          }
+        });
+        document.getElementById("todayAnswers").innerHTML = assets.map((asset) => {
+          const signal = signalBySymbol[asset.symbol];
+          const answer = answerForAsset(asset, signal);
+          const detail = signal
+            ? signal.reason || signal.technicalSummary || `${asset.priceState || "--"} / ${asset.trendState || "--"}`
+            : asset.technicalSummary || `${asset.state || "Normal"} · 1D ${fmtPct(asset.return1d)}`;
+          return `<div class="answer-row">` +
+            `<div class="answer-symbol">${escapeHtml(asset.symbol)}</div>` +
+            `<div><div class="answer-state ${answer.className}">${escapeHtml(answer.label)}</div>` +
+            `<div class="answer-detail">${escapeHtml(detail)}</div></div>` +
+            `</div>`;
         }).join("");
-        document.getElementById("signalDetails").innerHTML = sorted.map((row) => {
+      }
+      function renderModeTabs() {
+        document.getElementById("modeTabs").innerHTML = MODES.map((mode) =>
+          `<button class="btn segment ${state.mode === mode.key ? "is-active" : ""}" type="button" data-mode="${mode.key}">${mode.label}</button>`
+        ).join("");
+        document.querySelectorAll("[data-mode]").forEach((button) => {
+          button.onclick = () => {
+            state.mode = button.dataset.mode;
+            renderControlsAndChart();
+          };
+        });
+      }
+      function renderRangeControls() {
+        document.getElementById("rangeTabs").innerHTML = RANGES.map((range) =>
+          `<button class="btn segment ${state.range === range.key ? "is-active" : ""}" type="button" data-range="${range.key}">${range.label}</button>`
+        ).join("");
+        document.querySelectorAll("[data-range]").forEach((button) => {
+          button.onclick = () => {
+            state.range = button.dataset.range;
+            renderControlsAndChart();
+          };
+        });
+      }
+      function renderBenchmarkControls() {
+        const available = uniqueSymbols(allChartRows, "benchmark");
+        if (!state.benchmarkDefaultsApplied) {
+          available.forEach((symbol) => state.benchmarks.add(symbol));
+          state.benchmarkDefaultsApplied = true;
+        }
+        document.getElementById("benchmarkControls").innerHTML = available.map((symbol) =>
+          `<label class="checkbox-pill ${state.benchmarks.has(symbol) ? "is-active" : ""}"><input type="checkbox" data-benchmark="${escapeHtml(symbol)}" ${state.benchmarks.has(symbol) ? "checked" : ""}>${escapeHtml(symbol)}</label>`
+        ).join("");
+        document.querySelectorAll("[data-benchmark]").forEach((input) => {
+          input.onchange = () => {
+            if (input.checked) state.benchmarks.add(input.dataset.benchmark);
+            else state.benchmarks.delete(input.dataset.benchmark);
+            renderControlsAndChart();
+          };
+        });
+      }
+      function ensureTickerDefaults() {
+        const ordered = assetOrder();
+        if (!state.selectedTicker || ordered.indexOf(state.selectedTicker) === -1) {
+          state.selectedTicker = ordered[0] || "";
+        }
+        if (!state.comparedTickers.size) {
+          ordered.slice(0, 5).forEach((symbol) => state.comparedTickers.add(symbol));
+        }
+      }
+      function renderTickerControls() {
+        ensureTickerDefaults();
+        const ordered = assetOrder();
+        const show = state.mode !== "portfolio";
+        const el = document.getElementById("tickerControls");
+        if (!show) {
+          el.innerHTML = "";
+          return;
+        }
+        el.innerHTML = ordered.map((symbol) => {
+          if (state.mode === "tickers") {
+            return `<label class="checkbox-pill ${state.selectedTicker === symbol ? "is-active" : ""}"><input type="radio" name="ticker-single" data-ticker-single="${escapeHtml(symbol)}" ${state.selectedTicker === symbol ? "checked" : ""}>${escapeHtml(symbol)}</label>`;
+          }
+          return `<label class="checkbox-pill ${state.comparedTickers.has(symbol) ? "is-active" : ""}"><input type="checkbox" data-ticker-compare="${escapeHtml(symbol)}" ${state.comparedTickers.has(symbol) ? "checked" : ""}>${escapeHtml(symbol)}</label>`;
+        }).join("");
+        document.querySelectorAll("[data-ticker-single]").forEach((button) => {
+          button.onchange = () => {
+            state.selectedTicker = button.dataset.tickerSingle;
+            renderControlsAndChart();
+          };
+        });
+        document.querySelectorAll("[data-ticker-compare]").forEach((button) => {
+          button.onchange = () => {
+            const symbol = button.dataset.tickerCompare;
+            if (button.checked) state.comparedTickers.add(symbol);
+            else state.comparedTickers.delete(symbol);
+            if (!state.comparedTickers.size) state.comparedTickers.add(symbol);
+            renderControlsAndChart();
+          };
+        });
+      }
+      function selectedSeries() {
+        const out = [];
+        if (state.mode === "portfolio") {
+          out.push({ seriesType: "portfolio", symbol: "PORTFOLIO" });
+        } else if (state.mode === "tickers" && state.selectedTicker) {
+          out.push({ seriesType: "holding", symbol: state.selectedTicker });
+        } else if (state.mode === "compare") {
+          Array.from(state.comparedTickers).slice(0, 8).forEach((symbol) => out.push({ seriesType: "holding", symbol }));
+        }
+        Array.from(state.benchmarks).forEach((symbol) => out.push({ seriesType: "benchmark", symbol }));
+        return out;
+      }
+      const AX = {
+        axisLine: { show: false },
+        axisTick: { show: false },
+        axisLabel: { fontSize: 10, color: "rgba(0,0,0,0.68)", fontFamily: FONT, margin: 8 },
+        splitLine: { lineStyle: { color: "rgba(0,0,0,0.05)" } },
+      };
+      const TT = {
+        trigger: "axis",
+        backgroundColor: "rgba(255,255,255,0.96)",
+        borderColor: "rgba(0,0,0,0.08)",
+        borderWidth: 1,
+        borderRadius: 6,
+        padding: 12,
+        textStyle: { fontFamily: FONT, fontSize: 12, fontWeight: 400, color: "rgba(0,0,0,0.9)" },
+        axisPointer: { type: "line", lineStyle: { color: "rgba(0,0,0,0.12)", width: 1 } },
+        extraCssText: "box-shadow:none;",
+      };
+      function renderTrendChart() {
+        const chartEl = document.getElementById("trendChart");
+        if (!trendChart) trendChart = echarts.init(chartEl);
+        const picked = selectedSeries();
+        const series = picked.map((item, index) => {
+          const rows = rowsForSeries(item.seriesType, item.symbol);
+          const first = rows[0] || item;
+          const base = rows.find((row) => typeof row.normalized === "number" && Number.isFinite(row.normalized))?.normalized;
+          return {
+            name: first.label || item.symbol,
+            type: "line",
+            data: rows.map((row) => {
+              const value = base ? (row.normalized / base) * 100 : row.normalized;
+              return [rowDateMs(row), value];
+            }),
+            showSymbol: false,
+            smooth: false,
+            lineStyle: {
+              width: item.seriesType === "portfolio" ? 2 : 1.25,
+              color: colorFor(item, index),
+              type: item.seriesType === "benchmark" ? "dashed" : "solid",
+            },
+            itemStyle: { color: colorFor(item, index) },
+          };
+        }).filter((item) => item.data.length);
+        trendChart.setOption({
+          animation: false,
+          color: series.map((item) => item.itemStyle.color),
+          grid: { top: 12, right: 18, bottom: 26, left: 36, containLabel: true },
+          tooltip: TT,
+          legend: {
+            top: 0,
+            right: 0,
+            textStyle: { fontSize: 11, color: "rgba(0,0,0,0.72)", fontFamily: FONT },
+          },
+          xAxis: { type: "time", boundaryGap: false, ...AX },
+          yAxis: { type: "value", scale: true, ...AX },
+          series,
+        }, true);
+        requestAnimationFrame(() => trendChart.resize());
+      }
+      function renderControlsAndChart() {
+        renderModeTabs();
+        renderRangeControls();
+        renderBenchmarkControls();
+        renderTickerControls();
+        renderTrendChart();
+      }
+      function signalIntent(row) {
+        if (row.severity === "high") return "Cleared alert bar";
+        if (row.severity === "medium") return "Inspect, no ping";
+        return "Context only";
+      }
+      function techChips(row) {
+        const chips = [
+          ["Price", row.priceState],
+          ["Volume", row.volumeState],
+          ["Trend", row.trendState],
+          ["Vol", row.volatilityState],
+        ];
+        return `<div class="tech-chip-row">` + chips.map(([label, value]) =>
+          `<span class="tech-chip"><span class="tech-chip-label">${escapeHtml(label)}</span>${escapeHtml(value || "--")}</span>`
+        ).join("") + `</div>`;
+      }
+      function rawCell(html, className) {
+        return `<div class="watch-table-cell ${className || ""}">${html}</div>`;
+      }
+      function technicalCell(row) {
+        const driver = row.primaryTechnicalDriver ? `Driver: ${row.primaryTechnicalDriver}` : "Driver: --";
+        const score = typeof row.technicalScore === "number" ? `Tech ${fmtNumber(row.technicalScore, 0)}` : "Tech --";
+        const summary = row.technicalSummary || row.evidence || "";
+        return rawCell(
+          `<div class="tech-cell-title">${escapeHtml(driver)} / ${escapeHtml(score)}</div>` +
+          `<div class="tech-cell-sub">${escapeHtml(summary)}</div>`,
+          "is-technical"
+        );
+      }
+      function renderSignals(signals) {
+        const important = signals
+          .filter((row) => row.severity === "high" || row.severity === "medium")
+          .sort((a, b) => (b.score || 0) - (a.score || 0))
+          .slice(0, 3);
+        const detailRows = signals.slice().sort((a, b) => (b.score || 0) - (a.score || 0)).slice(0, 6);
+        document.getElementById("signalStamp").textContent = detailRows.length ? fmtDate(detailRows[0].asOf) : "";
+        if (!important.length) {
+          document.getElementById("signalList").innerHTML =
+            `<div class="empty-block"><div class="signal-title">No technical anomaly right now</div>` +
+            `<div class="detail-text">The automation checked price, volume, trend, and volatility. Nothing rose to medium or high attention in this run.</div></div>`;
+        } else {
+          document.getElementById("signalList").innerHTML = important.map((row) => {
+            const anchor = row.deepLinkAnchor || `signal-${row.signalId}`;
+            return `<a class="signal-card" href="#${escapeHtml(anchor)}">` +
+              `<div class="signal-top"><span class="signal-symbol">${escapeHtml(row.symbol)}</span><span class="severity ${escapeHtml(row.severity)}">${escapeHtml(row.severity)}</span></div>` +
+              `<div class="signal-title">${escapeHtml(row.title)}</div>` +
+              `<div class="signal-reason">${escapeHtml(row.reason)}</div>` +
+              techChips(row) +
+              `<div class="tech-summary">${escapeHtml(row.technicalSummary || row.evidence || "")}</div>` +
+              `<div class="metric-caption">${escapeHtml(signalIntent(row))} / Impact ${fmtPct(row.portfolioImpactPct)} / Score ${fmtNumber(row.score, 0)}</div>` +
+              `</a>`;
+          }).join("");
+        }
+        document.getElementById("signalDetails").innerHTML = detailRows.map((row) => {
           const anchor = row.deepLinkAnchor || `signal-${row.signalId}`;
           return `<article class="detail-card" id="${escapeHtml(anchor)}">` +
             `<div class="signal-top"><span class="signal-symbol">${escapeHtml(row.symbol)}</span><span class="severity ${escapeHtml(row.severity)}">${escapeHtml(row.severity)}</span></div>` +
             `<div class="signal-title">${escapeHtml(row.title)}</div>` +
             `<div class="detail-text">${escapeHtml(row.reason)}</div>` +
+            techChips(row) +
+            `<div class="detail-text">${escapeHtml(row.technicalSummary || "")}</div>` +
             `<div class="detail-text">${escapeHtml(row.evidence)}</div>` +
-            `<div class="metric-caption">Trigger ${escapeHtml(row.triggerType)} · As of ${escapeHtml(fmtDate(row.asOf))}</div>` +
+            `<div class="metric-caption">${escapeHtml(signalIntent(row))} / Driver ${escapeHtml(row.primaryTechnicalDriver || row.triggerType || "--")} / ${escapeHtml(fmtDate(row.asOf))}</div>` +
             `</article>`;
         }).join("");
       }
-
       function renderAlerts(alerts) {
         const sorted = alerts.slice().sort((a, b) => (b.date || 0) - (a.date || 0)).slice(0, 4);
         const quietCount = sorted.filter((row) => row.deliveryState === "quiet" || row.severity === "quiet").length;
@@ -529,60 +1195,34 @@
             `</article>`;
           return;
         }
-        document.getElementById("alertHistory").innerHTML = actionable.map((row) => {
-          return `<article class="alert-card">` +
-            `<div class="signal-top"><span class="signal-symbol">${escapeHtml(row.symbol)}</span><span class="severity ${escapeHtml(row.severity)}">${escapeHtml(row.deliveryState || row.severity)}</span></div>` +
-            `<div class="signal-title">${escapeHtml(row.title)}</div>` +
-            `<div class="detail-text">${escapeHtml(row.body)}</div>` +
-            `<div class="metric-caption">Trigger ${escapeHtml(row.triggerType)} · As of ${escapeHtml(fmtDate(row.asOf))}</div>` +
-            `</article>`;
-        }).join("");
+        document.getElementById("alertHistory").innerHTML = actionable.map((row) =>
+          `<article class="alert-card">` +
+          `<div class="signal-top"><span class="signal-symbol">${escapeHtml(row.symbol)}</span><span class="severity ${escapeHtml(row.severity)}">${escapeHtml(row.deliveryState || row.severity)}</span></div>` +
+          `<div class="signal-title">${escapeHtml(row.title)}</div>` +
+          `<div class="detail-text">${escapeHtml(row.body)}</div>` +
+          `<div class="metric-caption">Trigger ${escapeHtml(row.triggerType)} / ${escapeHtml(fmtDate(row.asOf))}</div>` +
+          `</article>`
+        ).join("");
       }
-
-      const AX = {
-        axisLine: { show: false },
-        axisTick: { show: false },
-        axisLabel: { fontSize: 10, color: "rgba(0,0,0,0.7)", fontFamily: FONT, margin: 8 },
-        splitLine: { show: false },
-      };
-      const GRID = { top: 8, right: 8, bottom: 8, left: 8, containLabel: true };
-      const TT = {
-        trigger: "axis",
-        backgroundColor: "rgba(255,255,255,0.96)",
-        borderColor: "rgba(0,0,0,0.08)",
-        borderWidth: 1,
-        borderRadius: 6,
-        padding: 12,
-        textStyle: { fontFamily: FONT, fontSize: 12, fontWeight: 400, color: "rgba(0,0,0,0.9)" },
-        axisPointer: { type: "line", lineStyle: { color: "rgba(0,0,0,0.1)", width: 1 } },
-        extraCssText: "box-shadow:none;",
-      };
-      function initChart(el, option) {
-        requestAnimationFrame(() => {
-          const chart = echarts.init(el);
-          chart.setOption(option);
-          charts.push(chart);
-          requestAnimationFrame(() => chart.resize());
-        });
+      function cell(value, className) {
+        return `<div class="watch-table-cell ${className || ""}">${escapeHtml(value)}</div>`;
       }
       function initTableAlignment(tableEl) {
-        const rows = tableEl.querySelectorAll(".table-row");
+        const rows = tableEl.querySelectorAll(".watch-table-row");
         if (rows.length === 0) return;
-        const colCount = rows[0].querySelectorAll(".table-cell").length;
+        const colCount = rows[0].querySelectorAll(".watch-table-cell").length;
         rows.forEach((row) => {
           row.style.removeProperty("min-width");
-          const cells = row.querySelectorAll(".table-cell");
+          const cells = row.querySelectorAll(".watch-table-cell");
           for (let i = 0; i < cells.length; i += 1) {
             cells[i].style.removeProperty("flex");
-            cells[i].style.removeProperty("min-width");
-            cells[i].style.removeProperty("width");
           }
         });
         const colWidths = [];
         for (let col = 0; col < colCount; col += 1) {
           let maxW = 0;
           rows.forEach((row) => {
-            const cellEl = row.querySelectorAll(".table-cell")[col];
+            const cellEl = row.querySelectorAll(".watch-table-cell")[col];
             if (cellEl) maxW = Math.max(maxW, cellEl.scrollWidth);
           });
           colWidths.push(maxW);
@@ -595,7 +1235,7 @@
         for (let col = 0; col < colCount; col += 1) {
           totalWidth += resolved[col];
           rows.forEach((row) => {
-            const cellEl = row.querySelectorAll(".table-cell")[col];
+            const cellEl = row.querySelectorAll(".watch-table-cell")[col];
             if (cellEl) cellEl.style.flex = "0 0 " + resolved[col] + "px";
           });
         }
@@ -603,112 +1243,55 @@
           row.style.minWidth = totalWidth + "px";
         });
       }
-      function renderEquityChart(rows) {
-        document.getElementById("equityStamp").textContent = rows.length ? fmtDate(last(rows).date) : "";
-        const series = [{
-          name: "Portfolio",
-          type: "line",
-          data: rows.map((row) => [row.date, row.portfolioIndex]),
-          showSymbol: false,
-          lineStyle: { width: 1, color: "#49a3a6" },
-          itemStyle: { color: "#49a3a6" },
-        }];
-        if (rows.some((row) => typeof row.benchmarkIndex === "number")) {
-          series.push({
-            name: "Benchmark",
-            type: "line",
-            data: rows.filter((row) => typeof row.benchmarkIndex === "number").map((row) => [row.date, row.benchmarkIndex]),
-            showSymbol: false,
-            lineStyle: { width: 1, color: "#7a7f87" },
-            itemStyle: { color: "#7a7f87" },
-          });
-        }
-        initChart(document.getElementById("equityChart"), {
-          animation: false,
-          grid: GRID,
-          tooltip: TT,
-          xAxis: { type: "time", boundaryGap: false, ...AX },
-          yAxis: { type: "value", scale: true, ...AX },
-          series,
-        });
-      }
-      function renderPriceChart(rows) {
-        const symbols = Array.from(new Set(rows.map((row) => row.symbol))).sort();
-        document.getElementById("priceStamp").textContent = rows.length ? fmtDate(last(rows).date) : "";
-        initChart(document.getElementById("priceChart"), {
-          animation: false,
-          grid: GRID,
-          tooltip: TT,
-          xAxis: { type: "time", boundaryGap: false, ...AX },
-          yAxis: { type: "value", scale: true, ...AX },
-          series: symbols.map((symbol) => ({
-            name: symbol,
-            type: "line",
-            data: rows.filter((row) => row.symbol === symbol).map((row) => [row.date, row.normalized]),
-            showSymbol: false,
-            lineStyle: { width: 1, color: colorFor(symbol, symbols) },
-            itemStyle: { color: colorFor(symbol, symbols) },
-          })),
-        });
-      }
-      function cell(value, className) {
-        return `<div class="table-cell ${className || ""}">${escapeHtml(value)}</div>`;
-      }
       function renderTable(assets) {
         document.getElementById("tableStamp").textContent = assets.length ? fmtDate(assets[0].asOf) : "";
         const sorted = assets.slice().sort((a, b) => (b.attentionScore || 0) - (a.attentionScore || 0));
         document.getElementById("assetTable").innerHTML =
-          `<div class="table-row table-header">` +
-          cell("Symbol") + cell("Company") + cell("Weight") + cell("1D") + cell("1M") +
-          cell("Rel 1D") + cell("RSI") + cell("MA20") + cell("Mkt Cap") + cell("Severity") +
+          `<div class="watch-table-row table-header">` +
+          cell("Symbol") + cell("Company") + cell("Weight") + cell("1D") + cell("Rel 1D") +
+          cell("Technical state") + cell("Volume") + cell("Severity") +
           `</div>` +
           sorted.map((row) =>
-            `<div class="table-row table-body-row">` +
+            `<div class="watch-table-row table-body-row">` +
             cell(row.symbol) +
             cell(row.name || row.symbol) +
-            cell(fmtPct(row.watchWeightPct)) +
+            cell(fmtNumber(row.watchWeightPct, 2) + "%") +
             cell(fmtPct(row.return1d), clsFor(row.return1d)) +
-            cell(fmtPct(row.return1m), clsFor(row.return1m)) +
             cell(fmtPct(row.relativeReturn1d), clsFor(row.relativeReturn1d)) +
-            cell(fmtNumber(row.rsi14, 1)) +
-            cell(fmtPct(row.ma20DistancePct), clsFor(row.ma20DistancePct)) +
-            cell(fmtMoney(row.marketCap)) +
-            cell(`${row.severity || "--"} · ${fmtNumber(row.attentionScore, 0)}`) +
+            technicalCell(row) +
+            cell(`${row.volumeState || "--"} / ${fmtNumber(row.volumeRatio20d, 2)}x`) +
+            cell(`${row.severity || "--"} / ${fmtNumber(row.attentionScore, 0)}`) +
             `</div>`
           ).join("");
         initTableAlignment(document.getElementById("assetTable"));
       }
-
       async function init() {
-        const [summaryRaw, equityRaw, assetRaw, priceRaw, signalRaw, alertRaw, decisionRaw] = await Promise.all([
+        const [summaryRaw, assetRaw, chartRaw, signalRaw, alertRaw, decisionRaw] = await Promise.all([
           readAlfsJson(PATHS.summary),
-          readAlfsJson(PATHS.equity),
           readAlfsJson(PATHS.assets),
-          readAlfsJson(PATHS.prices),
+          readAlfsJson(PATHS.chartSeries),
           readAlfsJson(PATHS.signals),
           readAlfsJson(PATHS.alerts),
           readAlfsJson(PATHS.decision),
         ]);
         const summary = last(flattenRows(summaryRaw));
-        const equity = flattenRows(equityRaw);
-        const assets = flattenRows(assetRaw);
-        const prices = flattenRows(priceRaw);
-        const signals = flattenRows(signalRaw);
+        allAssets = flattenRows(assetRaw);
+        allChartRows = flattenRows(chartRaw);
+        allSignals = flattenRows(signalRaw);
         const alerts = flattenRows(alertRaw);
         const decision = last(flattenRows(decisionRaw));
-        if (!summary || !equity.length || !assets.length || !prices.length) {
+        if (!summary || !allAssets.length || !allChartRows.length) {
           throw new Error("Feed output is empty");
         }
         if (!decision) {
           throw new Error("Alert decision output is empty");
         }
-        renderDecision(decision);
         renderSummary(summary);
-        renderSignals(signals);
+        renderAttentionStatus(summary, decision, allAssets, allSignals);
+        renderSignals(allSignals);
         renderAlerts(alerts);
-        renderEquityChart(equity);
-        renderPriceChart(prices);
-        renderTable(assets);
+        renderTable(allAssets);
+        renderControlsAndChart();
         if (window.location.hash) {
           requestAnimationFrame(() => {
             const target = document.querySelector(window.location.hash);
@@ -716,10 +1299,9 @@
           });
         }
       }
-
       window.addEventListener("resize", () => {
         requestAnimationFrame(() => {
-          charts.forEach((chart) => chart.resize());
+          if (trendChart) trendChart.resize();
           initTableAlignment(document.getElementById("assetTable"));
         });
       });
