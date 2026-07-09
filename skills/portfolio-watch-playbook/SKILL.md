@@ -42,10 +42,10 @@ The first screen must answer: **Anything big?** It should show, in this order:
 
 1. A one-sentence explanation of what the Playbook monitors: price, volume,
    trend, volatility, portfolio impact, and SPY/QQQ context.
-2. A red/yellow/green answer in user language:
-   - `Green / 无需关注`: current data shows nothing worth checking.
-   - `Yellow / 留意一下`: something is worth a look, but not urgent.
-   - `Red / 请立即关注`: a major change crossed the interruption bar.
+2. A large fixed `Anything big?` title, followed by a concrete answer sentence.
+   Do not replace the title with the status label or narrative sentence. Use
+   `narrative/brief.summary` when available and deterministic feed-backed prose
+   otherwise.
 3. One row per working holding with concrete evidence: 1D move, relative move,
    volume ratio, and portfolio impact.
 4. The top one or two changes worth inspecting, using evidence-backed language.
@@ -61,6 +61,18 @@ Do not add a separate holdings-status table that repeats the first-screen
 holding cards. If a holding-level state is needed, put it in the first-screen
 cards or in the signal detail evidence. Use one visual component for all
 red/yellow/green labels across the page.
+
+Render `证据明细` as a table, not a repeated card grid. Keep stable anchors on
+the table rows so notifications can still deep-link to the relevant signal.
+Any visible signed return or relative-return percentage must use green for
+positive values and red for negative values, including values inside narrative
+sentences.
+
+When using alpi for user-facing prose, use it only to summarize already-wired
+feed data. It must not introduce news, earnings, analyst revisions, company
+catalysts, thesis changes, financial values, or recommendations that are not in
+the feed outputs. The page must work with deterministic fallback prose if the
+model output is unavailable.
 
 ## Defaults
 

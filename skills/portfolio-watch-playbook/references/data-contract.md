@@ -36,6 +36,24 @@ Required fields:
 - `missingSymbols` - comma-separated failed symbols, if any.
 - `missingBenchmarks` - comma-separated failed benchmark lookups, if any.
 
+### `narrative/brief`
+
+One latest user-facing summary for the first screen. The feed may generate this
+with alpi over the already-computed feed records, but it must fall back to a
+deterministic summary when model output is unavailable or invalid.
+
+Required fields:
+
+- `summary` - one concrete sentence answering `Anything big?` without repeating
+  only the status label.
+- `focus` - newline-separated, evidence-backed lines for the changes worth
+  reading.
+- `limitations` - short statement of what the sentence is and is not based on.
+- `source` - plain source label such as `model_over_feed_data` or
+  `deterministic_feed_summary`.
+- `modelStatus` - `generated` or `fallback`.
+- `asOf` - latest source timestamp.
+
 ### `portfolio/equity`
 
 Time series for the normalized portfolio path. Keep this output for backward
@@ -214,6 +232,9 @@ Required fields:
 - Keep `alerts/decision` plain-language and user-facing. The page must not
   require users to translate severity bands, score thresholds, or quiet audit
   rows to understand the current state.
+- Keep `narrative/brief` separated from factual metric fields. It may rewrite
+  and summarize existing feed data, but it must not introduce new facts,
+  events, news, catalysts, estimates, or recommendations.
 - Do not expose internal terms such as `gate`, `review candidate`, or
   `portfolio risk elevated` as the primary UI answer. Use the red/yellow/green
   labels and explain them in ordinary language.

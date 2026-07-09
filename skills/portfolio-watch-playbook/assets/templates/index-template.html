@@ -236,20 +236,22 @@
         border-radius: var(--radius-ct-s);
       }
       .attention-header {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        gap: var(--spacing-xl);
-        align-items: start;
+        display: block;
       }
-      .attention-kicker {
-        font-size: 12px;
-        line-height: 20px;
-        color: var(--text-n7);
-      }
-      .attention-question {
+      .attention-title {
         margin-top: var(--spacing-xxs);
-        font-size: clamp(32px, 5vw, 56px);
-        line-height: 1.03;
+        max-width: 960px;
+        font-size: clamp(44px, 7vw, 76px);
+        line-height: 0.98;
+        font-weight: 400;
+        color: var(--text-n9);
+        overflow-wrap: anywhere;
+      }
+      .attention-summary {
+        max-width: 920px;
+        margin-top: var(--spacing-m);
+        font-size: clamp(18px, 2.2vw, 24px);
+        line-height: 1.3;
         font-weight: 400;
         color: var(--text-n9);
         overflow-wrap: anywhere;
@@ -260,6 +262,12 @@
         font-size: 15px;
         line-height: 25px;
         color: var(--text-n8);
+      }
+      .narrative-source {
+        margin-top: var(--spacing-xs);
+        font-size: 12px;
+        line-height: 20px;
+        color: var(--text-n5);
       }
       .attention-status-row {
         display: flex;
@@ -575,6 +583,48 @@
         color: var(--text-n5);
         margin-bottom: 2px;
       }
+      .evidence-table-wrap {
+        width: 100%;
+        overflow-x: auto;
+        border: 1px solid var(--line-l05);
+        border-radius: var(--radius-ct-s);
+        background: var(--b0-page);
+      }
+      .evidence-table {
+        width: 100%;
+        min-width: 940px;
+        border-collapse: collapse;
+      }
+      .evidence-table th,
+      .evidence-table td {
+        padding: var(--spacing-s) var(--spacing-m);
+        border-bottom: 1px solid var(--line-l05);
+        text-align: left;
+        vertical-align: top;
+        font-size: 13px;
+        line-height: 21px;
+      }
+      .evidence-table th {
+        color: var(--text-n5);
+        font-weight: 400;
+        white-space: nowrap;
+      }
+      .evidence-table tr:last-child td {
+        border-bottom: 0;
+      }
+      .evidence-symbol {
+        font-size: 14px;
+        line-height: 22px;
+        color: var(--text-n9);
+      }
+      .evidence-note {
+        margin-top: var(--spacing-xxs);
+        color: var(--text-n7);
+      }
+      .evidence-missing {
+        margin-top: var(--spacing-xs);
+        color: var(--text-n5);
+      }
       .capability-list {
         display: grid;
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -614,11 +664,14 @@
         .visual-stage {
           display: block;
         }
-        .attention-question {
-          font-size: 34px;
-          line-height: 38px;
+        .attention-title {
+          font-size: 46px;
+          line-height: 48px;
         }
-        .attention-header,
+        .attention-summary {
+          font-size: 18px;
+          line-height: 26px;
+        }
         .intro-strip {
           grid-template-columns: 1fr;
           display: grid;
@@ -710,7 +763,7 @@
       <section class="intro-strip" aria-label="Playbook description">
         <div class="intro-copy">
           <div class="intro-kicker">Portfolio Watch</div>
-          <h2 class="intro-title">这个 Playbook 是用来判断今天有没有值得打开看的持仓变化。</h2>
+          <h2 class="intro-title">这个 Playbook 是用来判断今天有没有值得你查看的持仓变化。</h2>
           <p class="intro-text" id="playbookIntro">
             它监控价格变化、成交量、趋势、波动率、组合影响，以及相对 SPY/QQQ 的表现。
           </p>
@@ -722,17 +775,17 @@
         <div class="attention-card">
           <div class="attention-header">
             <div>
-              <div class="attention-kicker">Anything big?</div>
-              <h1 class="attention-question" id="overallStatus">...</h1>
+              <h1 class="attention-title">Anything big?</h1>
+              <div class="attention-summary" id="overallStatus">...</div>
               <div class="attention-lede" id="attentionWhy">...</div>
+              <div class="narrative-source" id="narrativeSource"></div>
             </div>
-            <span class="status-chip" id="overallBadge">...</span>
           </div>
 
           <div class="answer-list" id="todayAnswers"></div>
 
-          <div class="focus-block">
-            <div class="attention-meta-label">现在最该看</div>
+          <div class="focus-block" id="signals">
+            <div class="attention-meta-label">值得留意的变化</div>
             <div class="focus-list" id="focusHighlights"></div>
           </div>
         </div>
@@ -766,17 +819,9 @@
       </section>
 
       <section class="grid" aria-label="Portfolio watch details">
-        <div class="panel col-12" id="signals">
-          <div class="section-title">
-            <span class="section-title-text">今天要看什么</span>
-            <span class="section-meta" id="signalStamp"></span>
-          </div>
-          <div class="signal-list" id="signalList"></div>
-        </div>
-
         <div class="panel col-12">
           <div class="section-title"><span class="section-title-text">证据明细</span></div>
-          <div class="detail-grid" id="signalDetails"></div>
+          <div id="signalDetails"></div>
         </div>
 
         <div class="panel col-6 is-narrow">
@@ -805,6 +850,7 @@
         signals: feedPath("signals", "events", "@last/1"),
         alerts: feedPath("alerts", "events", "@last/5"),
         decision: feedPath("alerts", "decision", "@last/1"),
+        narrative: feedPath("narrative", "brief", "@last/1"),
         capability: feedPath("capability", "status", "@last/1"),
       };
       const PALETTE = ["#2f8f9d", "#d96b5f", "#5e72c8", "#78994e", "#b565a7", "#c48c3f", "#60798d"];
@@ -873,6 +919,19 @@
           .replace(/"/g, "&quot;")
           .replace(/'/g, "&#39;");
       }
+      function colorFinancialMoves(value) {
+        return escapeHtml(cleanNarrativeText(value))
+          .replace(/(^|[^\w])(\+\d+(?:\.\d+)?%)/g, '$1<span class="is-up">$2</span>')
+          .replace(/(^|[^\w])(-\d+(?:\.\d+)?%)/g, '$1<span class="is-down">$2</span>')
+          .replace(/(涨\s*)(\d+(?:\.\d+)?%)/g, '$1<span class="is-up">$2</span>')
+          .replace(/(跌\s*)(\d+(?:\.\d+)?%)/g, '$1<span class="is-down">$2</span>');
+      }
+      function cleanNarrativeText(value) {
+        return String(value ?? "")
+          .replace(/主要要看/g, "主要看")
+          .replace(/关注线/g, "需要关注的变化")
+          .replace(/打开看/g, "查看");
+      }
       function clsFor(value) {
         if (typeof value !== "number") return "is-neutral";
         if (value > 0) return "is-up";
@@ -890,6 +949,10 @@
       function fmtRatio(value) {
         if (typeof value !== "number" || !Number.isFinite(value)) return "--";
         return fmtNumber(value, 2) + "x";
+      }
+      function fmtImpact(value) {
+        if (typeof value !== "number" || !Number.isFinite(value)) return "--";
+        return fmtNumber(Math.abs(value), 2) + "%";
       }
       function fmtMoney(value) {
         if (typeof value !== "number" || !Number.isFinite(value)) return "--";
@@ -994,9 +1057,9 @@
           (summary.missingBenchmarks ? `<span class="pill">缺失基准: ${escapeHtml(summary.missingBenchmarks)}</span>` : "");
         const universe = summary.universe || "这些持仓";
         document.getElementById("playbookIntro").textContent =
-          `它监控 ${universe} 的价格变化、成交量、趋势、波动率、组合影响，以及相对 SPY/QQQ 的表现，用来判断今天有没有值得你打开看的变化。`;
-        document.getElementById("chartRead").textContent =
-          `组合今日 ${fmtPct(summary.return1d)} / ${benchmarkText}`;
+          `它监控 ${universe} 的价格变化、成交量、趋势、波动率、组合影响，以及相对 SPY/QQQ 的表现，用来判断今天有没有值得你查看的变化。`;
+        document.getElementById("chartRead").innerHTML =
+          `组合今日 <span class="${clsFor(summary.return1d)}">${escapeHtml(fmtPct(summary.return1d))}</span> / ${escapeHtml(benchmarkText)}`;
       }
       function attentionStatusModel(summary, decision, signals) {
         const explicit = normalizedColor(decision.bigStatusColor || summary.bigStatusColor);
@@ -1064,7 +1127,15 @@
         const row = asset || signal || {};
         const impact = portfolioImpactFor(asset, signal);
         const relText = typeof row.relativeReturn1d === "number" ? `，相对 SPY ${fmtPct(row.relativeReturn1d)}` : "";
-        return `${row.symbol || "--"} 今日 ${fmtPct(row.return1d)}${relText}，成交量 ${fmtRatio(row.volumeRatio20d)}，组合影响 ${fmtPct(impact)}。`;
+        return `${row.symbol || "--"} 今日 ${fmtPct(row.return1d)}${relText}，成交量 ${fmtRatio(row.volumeRatio20d)}，组合影响 ${fmtImpact(impact)}。`;
+      }
+      function holdingEvidenceHtml(asset, signal) {
+        const row = asset || signal || {};
+        const impact = portfolioImpactFor(asset, signal);
+        const rel = typeof row.relativeReturn1d === "number"
+          ? `，相对 SPY <span class="${clsFor(row.relativeReturn1d)}">${escapeHtml(fmtPct(row.relativeReturn1d))}</span>`
+          : "";
+        return `${escapeHtml(row.symbol || "--")} 今日 <span class="${clsFor(row.return1d)}">${escapeHtml(fmtPct(row.return1d))}</span>${rel}，成交量 ${escapeHtml(fmtRatio(row.volumeRatio20d))}，组合影响 ${escapeHtml(fmtImpact(impact))}。`;
       }
       function topSignals(signals, limit) {
         return signals.slice()
@@ -1088,17 +1159,26 @@
         }
         return `${portfolioMove}。当前没有持仓达到需要关注的变化。`;
       }
+      function narrativeFocusLines(narrative) {
+        if (!narrative || !narrative.focus) return [];
+        return String(narrative.focus)
+          .split(/\n+/)
+          .map((line) => line.replace(/^[-•]\s*/, "").trim())
+          .filter(Boolean);
+      }
       function miniMetric(label, value, className) {
         return `<div class="mini-metric"><div class="mini-label">${escapeHtml(label)}</div><div class="mini-value ${className || ""}">${escapeHtml(value)}</div></div>`;
       }
-      function renderAttentionStatus(summary, decision, assets, signals) {
+      function renderAttentionStatus(summary, decision, assets, signals, narrative) {
         const model = attentionStatusModel(summary, decision, signals);
-        const badge = document.getElementById("overallBadge");
-        badge.textContent = model.label;
-        badge.classList.remove("green", "yellow", "red");
-        badge.classList.add(model.color);
-        document.getElementById("overallStatus").textContent = model.label;
-        document.getElementById("attentionWhy").textContent = portfolioRead(summary, assets, signals, model.color);
+        const narrativeSummary = narrative && narrative.summary ? narrative.summary : portfolioRead(summary, assets, signals, model.color);
+        const narrativeLimit = narrative && narrative.limitations
+          ? narrative.limitations
+          : "基于已接入的价格、成交量、趋势、波动率、组合影响和 SPY/QQQ 对比整理。";
+        document.getElementById("overallStatus").innerHTML = colorFinancialMoves(narrativeSummary);
+        document.getElementById("attentionWhy").textContent = narrativeLimit;
+        document.getElementById("narrativeSource").textContent =
+          narrative && narrative.modelStatus === "generated" ? "模型根据已接入数据整理" : "根据已接入数据整理";
         document.getElementById("attentionUpdated").textContent = "更新 " + fmtDate(summary.asOf || decision.asOf);
 
         const signalBySymbol = signalBySymbolMap(signals);
@@ -1109,26 +1189,28 @@
           const impact = portfolioImpactFor(asset, signal);
           return `<article class="answer-row ${escapeHtml(color)}">` +
             `<div class="answer-top"><div class="answer-symbol">${escapeHtml(asset.symbol)}</div>${statusChip(answer.color, answer.label)}</div>` +
-            `<div class="answer-detail">${escapeHtml(holdingEvidence(asset, signal))}</div>` +
+            `<div class="answer-detail">${holdingEvidenceHtml(asset, signal)}</div>` +
             `<div class="mini-metrics">` +
             miniMetric("1D", fmtPct(asset.return1d), clsFor(asset.return1d)) +
             miniMetric("相对 SPY", fmtPct(asset.relativeReturn1d), clsFor(asset.relativeReturn1d)) +
             miniMetric("成交量", fmtRatio(asset.volumeRatio20d)) +
-            miniMetric("组合影响", fmtPct(impact)) +
+            miniMetric("组合影响", fmtImpact(impact)) +
             `</div>` +
             `</article>`;
         }).join("");
 
         const top = topSignals(signals, 2).filter((row) => reviewColorForRow(row) !== "green");
+        const focusLines = narrativeFocusLines(narrative);
         document.getElementById("focusHighlights").innerHTML = top.length ? top.map((row) => {
           const asset = assets.find((item) => item.symbol === row.symbol) || {};
           const color = reviewColorForRow(row);
+          const line = focusLines.shift() || holdingEvidence(asset, row);
           return `<article class="focus-row">` +
             `<div class="signal-top"><span class="signal-symbol">${escapeHtml(row.symbol)}</span>${statusChip(color, row.reviewLabel || colorLabel(color))}</div>` +
-            `<div class="focus-title">${escapeHtml(holdingEvidence(asset, row))}</div>` +
-            `<div class="focus-text">${escapeHtml(row.technicalSummary || row.confirmationStatus || "")}</div>` +
+            `<div class="focus-title">${colorFinancialMoves(line)}</div>` +
+            `<div class="focus-text">${colorFinancialMoves(row.technicalSummary || row.confirmationStatus || "")}</div>` +
             `</article>`;
-        }).join("") : `<article class="focus-row"><div class="focus-title">无需关注</div><div class="focus-text">当前没有持仓达到关注线。</div></article>`;
+        }).join("") : `<article class="focus-row"><div class="focus-title">${colorFinancialMoves(focusLines[0] || "当前没有持仓进入关注区。")}</div><div class="focus-text">继续按已接入的价格、成交量、趋势、波动率、组合影响和 SPY/QQQ 对比检查。</div></article>`;
       }
       function renderModeTabs() {
         document.getElementById("modeTabs").innerHTML = MODES.map((mode) =>
@@ -1332,54 +1414,36 @@
         ).join("") + `</div>`;
       }
       function renderSignals(signals) {
-        const important = signals
-          .filter((row) => reviewColorForRow(row) !== "green")
-          .sort((a, b) => {
-            const priorityDiff = reviewPriorityForRow(b) - reviewPriorityForRow(a);
-            if (priorityDiff) return priorityDiff;
-            return (b.score || 0) - (a.score || 0);
-          })
-          .slice(0, 3);
         const detailRows = signals.slice().sort((a, b) => {
           const priorityDiff = reviewPriorityForRow(b) - reviewPriorityForRow(a);
           if (priorityDiff) return priorityDiff;
           return (b.score || 0) - (a.score || 0);
         }).slice(0, 6);
-        document.getElementById("signalStamp").textContent = detailRows.length ? fmtDate(detailRows[0].asOf) : "";
-        if (!important.length) {
-          document.getElementById("signalList").innerHTML =
-            `<div class="empty-block"><div class="signal-title">无需关注</div>` +
-            `<div class="detail-text">当前没有值得你查看的变化。本版本已检查价格、成交量、趋势、波动率、组合影响和 SPY/QQQ 对比。</div></div>`;
-        } else {
-          document.getElementById("signalList").innerHTML = important.map((row) => {
-            const anchor = row.deepLinkAnchor || `signal-${row.signalId}`;
-            const color = reviewColorForRow(row);
-            const asset = allAssets.find((item) => item.symbol === row.symbol) || {};
-            return `<a class="signal-card" href="#${escapeHtml(anchor)}">` +
-              `<div class="signal-top"><span class="signal-symbol">${escapeHtml(row.symbol)}</span>${statusChip(color, row.reviewLabel || colorLabel(color))}</div>` +
-              `<div class="signal-title">${escapeHtml(signalIntent(row))}</div>` +
-              `<div class="signal-reason">${escapeHtml(holdingEvidence(asset, row))}</div>` +
-              techChips(row) +
-              `<div class="metric-caption">${escapeHtml(signalIntent(row))} / 组合影响 ${fmtPct(row.portfolioImpactPct)}</div>` +
-              `</a>`;
-          }).join("");
+        if (!detailRows.length) {
+          document.getElementById("signalDetails").innerHTML =
+            `<div class="empty-block"><div class="signal-title">暂无证据明细</div><div class="detail-text">当前没有可展示的信号。</div></div>`;
+          return;
         }
-        document.getElementById("signalDetails").innerHTML = detailRows.map((row) => {
+        document.getElementById("signalDetails").innerHTML =
+          `<div class="evidence-table-wrap"><table class="evidence-table">` +
+          `<thead><tr><th>持仓</th><th>状态</th><th>今日</th><th>相对 SPY</th><th>成交量</th><th>组合影响</th><th>证据</th></tr></thead><tbody>` +
+          detailRows.map((row) => {
           const anchor = row.deepLinkAnchor || `signal-${row.signalId}`;
           const color = reviewColorForRow(row);
           const asset = allAssets.find((item) => item.symbol === row.symbol) || {};
-          return `<article class="detail-card" id="${escapeHtml(anchor)}">` +
-            `<div class="signal-top"><span class="signal-symbol">${escapeHtml(row.symbol)}</span>${statusChip(color, row.reviewLabel || colorLabel(color))}</div>` +
-            `<div class="signal-title">${escapeHtml(holdingEvidence(asset, row))}</div>` +
-            `<div class="detail-text">${escapeHtml(row.technicalSummary || row.confirmationStatus || "")}</div>` +
+          return `<tr id="${escapeHtml(anchor)}">` +
+            `<td><div class="evidence-symbol">${escapeHtml(row.symbol)}</div><div class="evidence-label">${escapeHtml(fmtDate(row.asOf))}</div></td>` +
+            `<td>${statusChip(color, row.reviewLabel || colorLabel(color))}<div class="evidence-note">${escapeHtml(signalIntent(row))}</div></td>` +
+            `<td class="${clsFor(asset.return1d)}">${escapeHtml(fmtPct(asset.return1d))}</td>` +
+            `<td class="${clsFor(asset.relativeReturn1d)}">${escapeHtml(fmtPct(asset.relativeReturn1d))}</td>` +
+            `<td>${escapeHtml(fmtRatio(asset.volumeRatio20d))}</td>` +
+            `<td>${escapeHtml(fmtImpact(row.portfolioImpactPct))}</td>` +
+            `<td><div>${colorFinancialMoves(holdingEvidence(asset, row))}</div>` +
             techChips(row) +
-            `<div class="evidence-pair">` +
-            `<div class="evidence-box"><div class="evidence-label">已接入证据</div><div class="detail-text">${escapeHtml(row.evidencePresent || row.evidence || "")}</div></div>` +
-            `<div class="evidence-box"><div class="evidence-label">暂未接入</div><div class="detail-text">${escapeHtml(row.evidenceMissing || "新闻、财报、分析师预期或公司催化剂未接入本次判断。")}</div></div>` +
-            `</div>` +
-            `<div class="metric-caption">${escapeHtml(signalIntent(row))} / ${escapeHtml(fmtDate(row.asOf))}</div>` +
-            `</article>`;
-        }).join("");
+            `<div class="evidence-note">${colorFinancialMoves(row.technicalSummary || row.confirmationStatus || "")}</div>` +
+            `<div class="evidence-missing">暂未接入：${escapeHtml(row.evidenceMissing || "新闻、财报、分析师预期或公司催化剂未接入本次判断。")}</div></td>` +
+            `</tr>`;
+        }).join("") + `</tbody></table></div>`;
       }
       function renderAlerts(alerts, decision) {
         if (decision && decision.notificationAudit) {
@@ -1390,7 +1454,7 @@
             `<article class="alert-card">` +
             `<div class="signal-top"><span class="signal-symbol">PORTFOLIO</span>${statusChip(color, decision.bigStatusLabel || "无需关注")}</div>` +
             `<div class="signal-title">${escapeHtml(title)}</div>` +
-            `<div class="detail-text">${escapeHtml(decision.notificationAudit || "")}</div>` +
+            `<div class="detail-text">${colorFinancialMoves(decision.notificationAudit || "")}</div>` +
             `<div class="metric-caption">当前等级：${escapeHtml(decision.bigStatusLabel || "无需关注")} / ${escapeHtml(fmtDate(decision.asOf))}</div>` +
             `</article>`;
           return;
@@ -1434,13 +1498,14 @@
           `</div>`;
       }
       async function init() {
-        const [summaryRaw, assetRaw, chartRaw, signalRaw, alertRaw, decisionRaw, capabilityRaw] = await Promise.all([
+        const [summaryRaw, assetRaw, chartRaw, signalRaw, alertRaw, decisionRaw, narrativeRaw, capabilityRaw] = await Promise.all([
           readAlfsJson(PATHS.summary),
           readAlfsJson(PATHS.assets),
           readAlfsJson(PATHS.chartSeries),
           readAlfsJson(PATHS.signals),
           readAlfsJson(PATHS.alerts),
           readAlfsJson(PATHS.decision),
+          readAlfsJson(PATHS.narrative).catch(() => []),
           readAlfsJson(PATHS.capability).catch(() => []),
         ]);
         const summary = last(flattenRows(summaryRaw));
@@ -1449,6 +1514,7 @@
         allSignals = flattenRows(signalRaw);
         const alerts = flattenRows(alertRaw);
         const decision = last(flattenRows(decisionRaw));
+        const narrative = last(flattenRows(narrativeRaw));
         if (!summary || !allAssets.length || !allChartRows.length) {
           throw new Error("Feed output is empty");
         }
@@ -1456,7 +1522,7 @@
           throw new Error("Alert decision output is empty");
         }
         renderSummary(summary);
-        renderAttentionStatus(summary, decision, allAssets, allSignals);
+        renderAttentionStatus(summary, decision, allAssets, allSignals, narrative);
         renderSignals(allSignals);
         renderAlerts(alerts, decision);
         renderCapability(last(flattenRows(capabilityRaw)));

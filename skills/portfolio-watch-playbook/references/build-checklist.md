@@ -36,8 +36,8 @@ separate local checkout of the official Alva Skill.
   `feed-lifecycle.md`, and `deployment.md`.
 - Build outputs from `data-contract.md`: `portfolio/summary`,
   `portfolio/equity`, `watch/assets`, `history/prices`, `chart/series`,
-  `signals/events`, `alerts/events`, `alerts/decision`, `capability/status`,
-  and `notify/message`.
+  `signals/events`, `alerts/events`, `alerts/decision`, `narrative/brief`,
+  `capability/status`, and `notify/message`.
 - Run the exact ALFS script with `alva run --entry-path ...` after every
   meaningful change. Do not pass `initialConfirmation` during pre-subscription
   test runs; that mode is reserved for the first subscribed automation run.
@@ -54,12 +54,18 @@ separate local checkout of the official Alva Skill.
 - Follow `ui-contract.md`: Anything Big status, portfolio trend, today queue,
   evidence explanation, holdings, notification audit, and capability status.
 - The first viewport must explain what is monitored, answer `Anything big?`
-  with `无需关注`, `留意一下`, or `请立即关注`, and show each holding's concrete 1D,
-  relative, volume, and portfolio-impact evidence. The portfolio trend chart
-  should sit directly below it with usable Portfolio / Tickers / Compare
-  controls and SPY / QQQ benchmark toggles when data exists.
+  as a large title followed by a concrete sentence instead of a duplicated
+  status label, and show each holding's concrete 1D, relative, volume, and
+  portfolio-impact evidence. The portfolio trend chart should sit directly
+  below it with usable Portfolio / Tickers / Compare controls and SPY / QQQ
+  benchmark toggles when data exists.
 - Do not render a separate holdings-status table that repeats the first-screen
   holding cards.
+- Do not render a separate "today queue" below the chart that repeats the
+  first-screen worth-reading changes.
+- Render `证据明细` as a table with row anchors, not a repeated card grid.
+- Signed return and relative-return values must be green when positive and red
+  when negative everywhere they appear.
 - Use one status-chip treatment for `无需关注`, `留意一下`, and `请立即关注` everywhere
   those labels appear.
 - The page must not claim news, earnings, analyst revisions, catalysts, or

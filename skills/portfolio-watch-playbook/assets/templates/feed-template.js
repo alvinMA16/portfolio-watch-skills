@@ -15,6 +15,8 @@ const CONFIG = {
   lookbackDays: 260,
   duplicateCooldownDays: 7,
   redPortfolioImpactPct: 1.5,
+  enableNarrativeAgent: true,
+  narrativeModel: "gpt-5.5",
   initialSubscriptionConfirmation: true,
   portfolio: [
     { symbol: "REPLACE_SYMBOL", weight: 1 },
@@ -196,6 +198,17 @@ feed.def("alerts", {
   ]),
 });
 
+feed.def("narrative", {
+  brief: makeDoc("Narrative Brief", "User-facing first-screen summary generated from feed-backed records", [
+    str("summary"),
+    str("focus"),
+    str("limitations"),
+    str("source"),
+    str("modelStatus"),
+    str("asOf"),
+  ]),
+});
+
 feed.def("notify", {
   message: makeDoc("Notification", "Push notification sidecar", [
     str("title"),
@@ -373,6 +386,12 @@ function ratioText(value, decimals) {
   return String(rounded) + "x";
 }
 
+function impactText(value, decimals) {
+  const rounded = round(value, decimals);
+  if (rounded === null) return "--";
+  return String(Math.abs(rounded)) + "%";
+}
+
 function sensitivityThresholds() {
   if (CONFIG.sensitivity === "aggressive") return { high: 60, medium: 40 };
   if (CONFIG.sensitivity === "conservative") return { high: 80, medium: 55 };
@@ -495,7 +514,7 @@ function buildEvidenceLine(symbol, returns, scored, technicalInputs, context) {
     : "，相对 " + benchmarkName + " " + signedPctText(context.relativeReturn1d, 2);
   return symbol + " 今日 " + signedPctText(returns.return1d, 2) + relative +
     "，成交量为 20 日中位数的 " + ratioText(technicalInputs.volumeRatio20d, 2) +
-    "，组合影响 " + signedPctText(scored.portfolioImpactPct, 2) + "。";
+    "，组合影响 " + impactText(scored.portfolioImpactPct, 2) + "。";
 }
 
 function buildReviewReason(symbol, color, returns, scored, technicalInputs, context) {
@@ -506,13 +525,13 @@ function buildReviewReason(symbol, color, returns, scored, technicalInputs, cont
   if (color === "yellow") {
     return evidenceLine + " 主要变化来自" + driverLabel(scored.primaryTechnicalDriver) + "，值得留意，但还不到立即提醒。";
   }
-  return evidenceLine + " 当前没有达到关注线。";
+  return evidenceLine + " 当前没有达到需要关注的变化。";
 }
 
 function buildEvidencePresent(returns, scored, technicalInputs) {
   return [
     "1D " + signedPctText(returns.return1d, 2),
-    "组合影响 " + signedPctText(scored.portfolioImpactPct, 2),
+    "组合影响 " + impactText(scored.portfolioImpactPct, 2),
     "成交量 " + ratioText(technicalInputs.volumeRatio20d, 2) + " 20日中位数",
     "波动 " + ratioText(technicalInputs.moveVsNormal, 2) + " 平常水平",
   ].join("；");
@@ -520,6 +539,226 @@ function buildEvidencePresent(returns, scored, technicalInputs) {
 
 function buildEvidenceMissing() {
   return "本版本未接入新闻、财报、分析师预期或公司催化剂，所以不会把单纯技术异动说成持仓逻辑变化。";
+}
+
+const VOICE_BLOCK = `VOICE — strict. The reader is a finance professional. Sound like a sharp
+analyst dropping a line in Slack, not a research-report abstract or
+generic LLM prose.
+
+POSITIVE PATTERNS:
+- Verbs over abstract nouns ("PANW crashed into the top-5", not
+  "PANW's ranking improved").
+- Numbers embedded in sentences ("oil firm at $89, defense rolling over").
+- Asymmetric rhythm. Avoid parallel "A rose to X; B fell to Y" structures.
+- Dry over hype. "Nothing material; roster unchanged." beats padding.
+- End with a one-line "so what" anchored in a number, level, name, or
+  next event — or stop. No generic closers.
+
+BANNED OPENERS: Overall, At its core, For [audience], A key point is,
+A notable claim is, The wrong question is, It is worth noting,
+This marks a (pivotal/major/key) moment.
+
+BANNED CONNECTORS: rather than, less about X (and) more about Y,
+not just X but Y, both X and Y, while also.
+
+BANNED VERBS: reinforces / reinforcing, reflects / reflecting,
+underscores / underscoring, unlocks, serves as, continues to validate,
+keeps alive, frames, highlights, emphasizes, symbolizes.
+
+BANNED ADVERBS / INTENSIFIERS: decisively, firmly, sharply, notably,
+importantly, ultimately, broadly, significantly.
+
+BANNED HEDGES: may potentially, in order to, due to the fact that,
+arguably, on balance, we believe.
+
+BANNED SHAPES:
+- Triplets of abstract nouns ("structures, platforms, and strategic
+  choices").
+- -ing analysis chains ("symbolizing X, reflecting Y, reinforcing Z").
+- Header + body that paraphrases the header. If a label precedes a
+  body sentence, the body must add a new fact, not restate the label.
+- More than one em-dash per paragraph.
+- Four-or-more-way enumerations in a single sentence. If you need four
+  items, use a list.
+
+GOOD example (TLDR):
+"Quality factor did the work today: NVDA, MSFT, AAPL all up while
+high-multiple growth bled. Two adds (PANW, ORCL), one drop (TSLA at
+rank 13). Watch CPI Thursday — a hot print resets the leadership."
+
+BAD example (TLDR):
+"The basket is less about momentum and more about quality. Names
+rotated as expected. Overall, the screen reinforces our preference
+for high-FCF compounders."
+WHY BAD: "less about X and more about Y" (banned connector),
+"Overall" (banned opener), "reinforces" (banned verb), no specific
+names or numbers, generic closer.
+
+GOOD example (delta body):
+"Sector rotation — energy back in lead. XLE +3.1% on the day vs
+SPY +0.4%, reversing two weeks of underperformance. Brent firm at
+$84 and a hot CPI print did the work."
+
+BAD example (delta body):
+"Sector rotation · Energy returned to leadership. Repeated
+outperformance in energy stocks reinforces that the sector
+continues to lead amid favorable macro conditions."
+WHY BAD: header restated by body (no new fact in first sentence),
+"reinforces" (banned verb), "favorable macro conditions" (generic
+filler — what conditions, by what number?), no specific names or
+numbers, research-report tone.
+
+Before returning, re-read your draft. If you used any banned token or
+shape, rewrite. Output must read like the GOOD examples above.`;
+
+function parseAgentJson(text) {
+  if (!text) return null;
+  const cleaned = String(text).replace(/^```(?:json)?/, "").replace(/```$/, "").trim();
+  try {
+    return JSON.parse(cleaned);
+  } catch (error) {
+    const match = cleaned.match(/\{[\s\S]*\}/);
+    if (!match) return null;
+    try {
+      return JSON.parse(match[0]);
+    } catch (inner) {
+      return null;
+    }
+  }
+}
+
+function narrativeLimitations() {
+  return "这段只基于已接入的价格、成交量、趋势、波动率、组合影响和 SPY/QQQ 对比；未接入新闻、财报或分析师预期。";
+}
+
+function cleanNarrativeText(value) {
+  return String(value || "")
+    .replace(/主要要看/g, "主要看")
+    .replace(/关注线/g, "需要关注的变化")
+    .replace(/打开看/g, "查看");
+}
+
+function narrativeFallback(summary, assets, signals, nowMs, latestAsOf, source) {
+  const active = signals.slice().filter((signal) => signal.reviewColor !== "green").sort((a, b) => {
+    const priorityDiff = reviewPriority(b.reviewColor) - reviewPriority(a.reviewColor);
+    if (priorityDiff) return priorityDiff;
+    return (b.score || 0) - (a.score || 0);
+  });
+  const red = active.filter((signal) => signal.reviewColor === "red");
+  const yellow = active.filter((signal) => signal.reviewColor === "yellow");
+  let summaryText;
+  if (red.length) {
+    summaryText = "组合今日 " + signedPctText(summary.return1d, 2) + "；" +
+      red.map((signal) => signal.symbol).join("、") + " 达到请立即关注级别。";
+  } else if (yellow.length) {
+    summaryText = "组合今日 " + signedPctText(summary.return1d, 2) + "；" +
+      yellow.map((signal) => signal.symbol).join("、") + " 有变化值得留意，还没到立即通知。";
+  } else {
+    summaryText = "组合今日 " + signedPctText(summary.return1d, 2) + "；没有持仓进入关注区。";
+  }
+  const focus = active.slice(0, 2).map((signal) => signal.reviewReason);
+  if (!focus.length) {
+    focus.push("没有持仓进入关注区；继续按已接入指标检查。");
+  }
+  return {
+    date: nowMs,
+    summary: cleanNarrativeText(summaryText),
+    focus: cleanNarrativeText(focus.join("\n")),
+    limitations: narrativeLimitations(),
+    source: source || "deterministic_feed_summary",
+    modelStatus: "fallback",
+    asOf: latestAsOf,
+  };
+}
+
+function narrativeInput(summary, assets, signals, capability) {
+  return {
+    summary: {
+      universe: summary.universe,
+      return1d: summary.return1d,
+      return1w: summary.return1w,
+      return1m: summary.return1m,
+      bigStatusColor: summary.bigStatusColor,
+      portfolioScope: summary.portfolioScope,
+    },
+    holdings: assets.map((asset) => ({
+      symbol: asset.symbol,
+      reviewColor: asset.reviewColor,
+      reviewLabel: asset.reviewLabel,
+      return1d: asset.return1d,
+      relativeReturn1d: asset.relativeReturn1d,
+      volumeRatio20d: asset.volumeRatio20d,
+      portfolioImpactPct: asset.portfolioImpactPct,
+      reviewReason: asset.reviewReason,
+    })),
+    topSignals: signals.slice().sort((a, b) => {
+      const priorityDiff = reviewPriority(b.reviewColor) - reviewPriority(a.reviewColor);
+      if (priorityDiff) return priorityDiff;
+      return (b.score || 0) - (a.score || 0);
+    }).slice(0, 3).map((signal) => ({
+      symbol: signal.symbol,
+      reviewColor: signal.reviewColor,
+      reviewLabel: signal.reviewLabel,
+      reviewReason: signal.reviewReason,
+      evidencePresent: signal.evidencePresent,
+      evidenceMissing: signal.evidenceMissing,
+      confirmationStatus: signal.confirmationStatus,
+      portfolioImpactPct: signal.portfolioImpactPct,
+    })),
+    capability: {
+      checkedItems: capability.checkedItems,
+      notCheckedItems: capability.notCheckedItems,
+      decisionLimit: capability.decisionLimit,
+    },
+  };
+}
+
+async function buildNarrativeBrief(summary, assets, signals, capability, nowMs, latestAsOf) {
+  const fallback = narrativeFallback(summary, assets, signals, nowMs, latestAsOf);
+  if (!CONFIG.enableNarrativeAgent) return fallback;
+  try {
+    const { Agent, getModel } = require("@alva/pi");
+    const modelId = (env.args && env.args.model) || CONFIG.narrativeModel || "gpt-5.5";
+    const agent = new Agent({
+      initialState: {
+        systemPrompt: VOICE_BLOCK + "\n\n" +
+          "你是 Portfolio Watch 的中文摘要整理器。只基于用户提供的 JSON 数据写页面文案。" +
+          "不要编造新闻、财报、分析师预期、公司催化剂、持仓逻辑变化或交易建议。" +
+          "如果证据只有价格、成交量、趋势、波动率和组合影响，就直接这样说。" +
+          "portfolioImpactPct 是绝对影响幅度，不要加正负号；涨跌方向只看 return1d。" +
+          "不要使用“关注线”“主要要看”“打开看”这类生硬说法。" +
+          "输出必须是 JSON，必须以 { 开头并以 } 结尾，不要 Markdown。Schema: " +
+          "{\"summary\":\"一句话回答 Anything big，不要只写状态标签\",\"focus\":[\"1-3条具体变化\"],\"limitations\":\"一句话说明只基于已接入数据\"}",
+        model: getModel("openai", modelId),
+        tools: [],
+        thinkingLevel: "off",
+      },
+    });
+    const prompt =
+      "把下面 Portfolio Watch 数据改写成普通用户能一眼看懂的中文。数字只能使用 JSON 里的值，最多写 3 条 focus。\n\n" +
+      JSON.stringify(narrativeInput(summary, assets, signals, capability), null, 2);
+    const answer = await agent.ask(prompt);
+    const text = answer.message.content
+      .filter((block) => block.type === "text")
+      .map((block) => block.text)
+      .join("");
+    const parsed = parseAgentJson(text);
+    if (!parsed || !parsed.summary) {
+      return Object.assign({}, fallback, { source: "model_invalid_output" });
+    }
+    const focus = Array.isArray(parsed.focus) ? parsed.focus.join("\n") : String(parsed.focus || fallback.focus);
+    return {
+      date: nowMs,
+      summary: cleanNarrativeText(parsed.summary).slice(0, 260),
+      focus: cleanNarrativeText(focus).slice(0, 900),
+      limitations: String(parsed.limitations || narrativeLimitations()).slice(0, 260),
+      source: "model_over_feed_data",
+      modelStatus: "generated",
+      asOf: latestAsOf,
+    };
+  } catch (error) {
+    return Object.assign({}, fallback, { source: "model_error" });
+  }
 }
 
 function buildTechnicalSummary(symbol, returns, scored, technicalInputs) {
@@ -1291,6 +1530,7 @@ function buildNotify(alertRows, decision, setupConfirmation) {
     notCheckedItems: "新闻、财报、分析师预期、公司催化剂",
     decisionLimit: "本版本只用已接入的数据判断是否需要关注；不会把未接入的新闻、预期或催化剂当成结论。",
   };
+  const narrativeRecord = await buildNarrativeBrief(summaryRecord, assetRecords, signalRecords, capabilityRecord, nowMs, latestAsOf);
 
   let notifyState = "quiet";
   let alertCandidateCount = 0;
@@ -1318,6 +1558,7 @@ function buildNotify(alertRows, decision, setupConfirmation) {
     await ctx.self.ts("signals", "events").append(signalRecords);
     await ctx.self.ts("alerts", "events").append(alertRows);
     await ctx.self.ts("alerts", "decision").append([decision]);
+    await ctx.self.ts("narrative", "brief").append([narrativeRecord]);
     await ctx.self.ts("capability", "status").append([capabilityRecord]);
     await ctx.self.ts("notify", "message").append([{ date: nowMs, title: notify.title, body: notify.body }]);
     if (setupConfirmation && notify.body !== "<|SKIP_NOTIFICATION|>") {
@@ -1332,6 +1573,7 @@ function buildNotify(alertRows, decision, setupConfirmation) {
     signals: signalRecords.length,
     highSignalCount,
     alertCandidates: alertCandidateCount,
+    narrative: narrativeRecord.modelStatus,
     notify: notifyState,
     setupConfirmation: setupConfirmationState,
     asOf: latestAsOf,

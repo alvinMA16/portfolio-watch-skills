@@ -18,15 +18,19 @@ Show a compact decision surface:
 - Main question: `Anything big?`
 - One-sentence product explanation: this Playbook monitors price moves, volume,
   trend, volatility, portfolio impact, and SPY/QQQ context.
-- Status:
-  - `Green / 无需关注`: 当前没有值得你查看的变化。
-  - `Yellow / 留意一下`: 有变化值得看看，但还不到需要立刻处理。
-  - `Red / 请立即关注`: 有重大变化，建议现在查看。
+- Main title: render `Anything big?` as the large first-screen title.
+- Main answer: render one concrete sentence below that title from
+  `narrative/brief.summary` when available, otherwise a deterministic sentence
+  from `portfolio/summary`, `signals/events`, and `alerts/decision`.
+- Do not render the overall status label as a large headline or duplicate
+  top-right chip. The useful first-screen content is the concrete sentence and
+  the holding-level red/yellow/green state.
 - Holding answers: one row per working holding using the same labels and
   showing 1D return, relative return versus SPY, volume ratio, and portfolio
   impact.
-- Top changes: one or two evidence-backed lines that explain what is worth
-  opening now or later.
+- Worth-reading changes: one or two evidence-backed lines from
+  `narrative/brief.focus` when available, otherwise from the top non-green
+  `signals/events` rows.
 - Last checked should be a small timestamp, not a content block.
 - Use the same status-chip component everywhere a red/yellow/green label
   appears. Do not show both color-name labels such as `黄色` and action labels
@@ -68,11 +72,13 @@ scattering them around the chart. Time ranges should filter `chart/series` in
 the browser and rebase each visible line to 100 at the start of the selected
 range. Make the next section visible below the fold when possible.
 
-## 今天要看什么
+## 值得留意的变化
 
-Show `signals/events` sorted by the red/yellow/green user result, not by raw
-score or alert eligibility alone.
-Each row/card must include:
+This is part of the Anything Big first screen. Do not render a second standalone
+section below the chart that repeats the same signals.
+
+Show the top current changes sorted by the red/yellow/green user result, not by
+raw score or alert eligibility alone. Each row/card must include:
 
 - Symbol and title.
 - User status label: `无需关注`, `留意一下`, or `请立即关注`.
@@ -85,8 +91,7 @@ Each row/card must include:
 - Whether the signal is worth checking today or now.
 
 Yellow signals can be important to inspect without being worth a phone alert.
-Use plain sentences such as:
-
+Use concrete sentences with numbers rather than generic lines such as
 `TSLA 有变化值得看看，但还不到需要立刻处理。`
 
 ## 通知状态
@@ -109,7 +114,8 @@ means "worth alerting."
 ## 证据明细
 
 Each signal must have a stable anchor such as `#signal-<signalId>` so alerts can
-open the matching detail. The detail should show:
+open the matching detail. Render this section as a table, not a card grid. The
+table should show:
 
 - What happened.
 - Why it is abnormal across price, volume, trend, and volatility.
@@ -146,6 +152,9 @@ Show `capability/status` so the Playbook is honest about its scope:
   not let KPI cards or alert history crowd out the attention answer.
 - Use one visual treatment for `无需关注`, `留意一下`, and `请立即关注` everywhere
   those labels appear.
+- Use green for positive signed return / relative-return values and red for
+  negative signed return / relative-return values everywhere they appear,
+  including narrative text, holding rows, chart reads, and evidence tables.
 - Make empty and partial-data states honest: show missing symbols and blind
   spots instead of placeholder values.
 - Do not show `Portfolio risk elevated`, `review candidate`, `gate`, raw
