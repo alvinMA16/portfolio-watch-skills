@@ -16,7 +16,7 @@
         margin: 0;
         overflow-y: auto;
         overflow-x: hidden;
-        background: var(--b0-page);
+        background: #f7f8f5;
         color: var(--text-n9);
       }
       * {
@@ -29,9 +29,37 @@
       }
       .playbook-container {
         width: 100%;
-        max-width: 100%;
+        max-width: 1240px;
         margin: 0 auto;
-        padding: var(--spacing-s) var(--spacing-xxl) var(--spacing-xxxxl);
+        padding: var(--spacing-l) clamp(var(--spacing-s), 3vw, var(--spacing-xxl)) var(--spacing-xxxxl);
+      }
+      .intro-strip {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: var(--spacing-xl);
+        margin-bottom: var(--spacing-l);
+      }
+      .intro-copy {
+        max-width: 780px;
+      }
+      .intro-kicker {
+        font-size: 12px;
+        line-height: 20px;
+        color: var(--text-n5);
+      }
+      .intro-title {
+        margin: var(--spacing-xxs) 0 0;
+        font-size: 18px;
+        line-height: 28px;
+        font-weight: 400;
+        color: var(--text-n9);
+      }
+      .intro-text {
+        margin: var(--spacing-xs) 0 0;
+        font-size: 13px;
+        line-height: 22px;
+        color: var(--text-n7);
       }
       .status-strip,
       .pill-row,
@@ -92,16 +120,14 @@
         white-space: nowrap;
       }
       .visual-stage {
-        display: grid;
-        grid-template-columns: minmax(320px, 380px) minmax(0, 1fr);
-        gap: var(--spacing-xl);
-        align-items: start;
-        margin-bottom: var(--spacing-xxl);
+        display: block;
+        margin-bottom: var(--spacing-xl);
         max-width: 100%;
       }
       .chart-panel {
         min-width: 0;
         max-width: 100%;
+        margin-bottom: var(--spacing-xxl);
       }
       .chart-toolbar {
         display: flex;
@@ -112,7 +138,7 @@
         padding: var(--spacing-xs);
         border: 1px solid var(--line-l05);
         border-radius: var(--radius-ct-s);
-        background: var(--grey-g01);
+        background: var(--b0-page);
         margin-bottom: var(--spacing-m);
         max-width: 100%;
       }
@@ -193,23 +219,27 @@
       .chart-shell {
         min-height: 420px;
         padding: var(--spacing-s) 0 0;
+        border: 1px solid var(--line-l05);
+        border-radius: var(--radius-ct-s);
+        background: var(--b0-page);
       }
       .trend-chart-container {
         width: 100%;
         height: 400px;
       }
-      .attention-panel {
-        display: flex;
-        flex-direction: column;
-        gap: var(--spacing-m);
-        min-width: 0;
-      }
       .attention-card {
         min-width: 0;
         max-width: 100%;
-        padding: var(--spacing-l);
-        background: var(--grey-g01);
+        padding: clamp(var(--spacing-l), 4vw, var(--spacing-xxxl));
+        background: var(--b0-page);
+        border: 1px solid var(--line-l05);
         border-radius: var(--radius-ct-s);
+      }
+      .attention-header {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: var(--spacing-xl);
+        align-items: start;
       }
       .attention-kicker {
         font-size: 12px;
@@ -218,11 +248,18 @@
       }
       .attention-question {
         margin-top: var(--spacing-xxs);
-        font-size: 24px;
-        line-height: 32px;
+        font-size: clamp(32px, 5vw, 56px);
+        line-height: 1.03;
         font-weight: 400;
         color: var(--text-n9);
         overflow-wrap: anywhere;
+      }
+      .attention-lede {
+        max-width: 760px;
+        margin-top: var(--spacing-m);
+        font-size: 15px;
+        line-height: 25px;
+        color: var(--text-n8);
       }
       .attention-status-row {
         display: flex;
@@ -237,23 +274,33 @@
       .status-badge {
         display: inline-flex;
         align-items: center;
+        gap: 7px;
         min-height: 24px;
-        padding: var(--spacing-xxxs) var(--spacing-xs);
+        padding: var(--spacing-xxxs) var(--spacing-s);
         border-radius: var(--radius-ct-min);
         font-size: 11px;
         line-height: 16px;
-        text-transform: uppercase;
         background: var(--line-l05);
         color: var(--text-n7);
       }
+      .status-badge::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: currentColor;
+      }
       .status-badge.green {
-        color: var(--main-m3);
+        color: #197245;
+        background: #e8f5ee;
       }
       .status-badge.yellow {
-        color: var(--main-m1);
+        color: #8a6400;
+        background: #fff3cf;
       }
       .status-badge.red {
-        color: var(--main-m4);
+        color: #a83b32;
+        background: #fde8e5;
       }
       .overall-status {
         min-width: 0;
@@ -273,28 +320,38 @@
         overflow-wrap: anywhere;
       }
       .answer-list {
-        display: flex;
-        flex-direction: column;
-        gap: var(--spacing-xs);
-        margin-top: var(--spacing-s);
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: var(--spacing-s);
+        margin-top: var(--spacing-l);
       }
       .answer-heading {
         margin-top: var(--spacing-l);
       }
       .answer-row {
-        display: grid;
-        grid-template-columns: 64px minmax(0, 1fr);
-        gap: var(--spacing-s);
-        align-items: start;
-        padding-top: var(--spacing-xs);
-        border-top: 1px solid var(--line-l03);
+        display: block;
+        min-width: 0;
+        padding: var(--spacing-m);
+        border: 1px solid var(--line-l05);
+        border-left: 4px solid var(--line-l3);
+        border-radius: var(--radius-ct-s);
+        background: var(--grey-g01);
       }
       .answer-row > * {
         min-width: 0;
       }
+      .answer-row.green { border-left-color: #2a8a55; }
+      .answer-row.yellow { border-left-color: #c89113; }
+      .answer-row.red { border-left-color: #c24a40; }
+      .answer-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--spacing-s);
+      }
       .answer-symbol {
-        font-size: 13px;
-        line-height: 21px;
+        font-size: 15px;
+        line-height: 24px;
         color: var(--text-n9);
       }
       .answer-state {
@@ -304,11 +361,58 @@
         overflow-wrap: anywhere;
       }
       .answer-detail {
-        margin-top: 2px;
+        margin-top: var(--spacing-xs);
         font-size: 12px;
-        line-height: 18px;
+        line-height: 19px;
         color: var(--text-n5);
         overflow-wrap: anywhere;
+      }
+      .mini-metrics {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+        margin-top: var(--spacing-s);
+      }
+      .mini-metric {
+        min-width: 0;
+      }
+      .mini-label {
+        font-size: 10px;
+        line-height: 15px;
+        color: var(--text-n5);
+      }
+      .mini-value {
+        font-size: 13px;
+        line-height: 20px;
+        color: var(--text-n9);
+      }
+      .focus-block {
+        margin-top: var(--spacing-xl);
+        padding-top: var(--spacing-l);
+        border-top: 1px solid var(--line-l05);
+      }
+      .focus-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--spacing-s);
+        margin-top: var(--spacing-s);
+      }
+      .focus-row {
+        min-width: 0;
+        padding: var(--spacing-m);
+        border-radius: var(--radius-ct-s);
+        background: var(--grey-g01);
+      }
+      .focus-title {
+        font-size: 13px;
+        line-height: 21px;
+        color: var(--text-n9);
+      }
+      .focus-text {
+        margin-top: 2px;
+        font-size: 12px;
+        line-height: 19px;
+        color: var(--text-n6);
       }
       .attention-meta-grid {
         display: grid;
@@ -328,7 +432,8 @@
       .detail-card,
       .alert-card,
       .watch-table-surface {
-        background: var(--grey-g01);
+        background: var(--b0-page);
+        border: 1px solid var(--line-l05);
         border-radius: var(--radius-ct-s);
       }
       .summary-block,
@@ -397,6 +502,9 @@
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: var(--spacing-m);
       }
+      .panel.col-6 .detail-grid {
+        grid-template-columns: 1fr;
+      }
       .signal-card,
       .detail-card,
       .alert-card {
@@ -404,6 +512,13 @@
         padding: var(--spacing-m);
         color: inherit;
         text-decoration: none;
+      }
+      .signal-card {
+        transition: border-color 160ms ease, transform 160ms ease;
+      }
+      .signal-card:hover {
+        border-color: var(--line-l9);
+        transform: translateY(-1px);
       }
       .signal-top {
         display: flex;
@@ -434,6 +549,18 @@
       }
       .severity.medium {
         color: var(--main-m1);
+      }
+      .severity.green {
+        color: #197245;
+        background: #e8f5ee;
+      }
+      .severity.yellow {
+        color: #8a6400;
+        background: #fff3cf;
+      }
+      .severity.red {
+        color: #a83b32;
+        background: #fde8e5;
       }
       .signal-title {
         font-size: 15px;
@@ -564,15 +691,21 @@
           grid-column: span 4;
         }
         .visual-stage {
-          grid-template-columns: 1fr;
+          display: block;
         }
         .attention-question {
-          font-size: 20px;
-          line-height: 28px;
+          font-size: 34px;
+          line-height: 38px;
         }
-        .attention-status-row {
-          flex-direction: column;
-          gap: var(--spacing-s);
+        .attention-header,
+        .intro-strip {
+          grid-template-columns: 1fr;
+          display: grid;
+          gap: var(--spacing-m);
+        }
+        .answer-list,
+        .focus-list {
+          grid-template-columns: 1fr;
         }
         .chart-toolbar {
           display: grid;
@@ -618,8 +751,7 @@
           padding: var(--spacing-m);
         }
         .answer-row {
-          grid-template-columns: 52px minmax(0, 1fr);
-          gap: var(--spacing-xs);
+          padding: var(--spacing-s);
         }
         .control-group {
           align-items: flex-start;
@@ -654,66 +786,61 @@
       </div>
       <div class="error-box" id="errorBox"></div>
 
-      <section class="visual-stage" aria-label="Portfolio status">
-        <aside class="attention-panel" aria-label="Anything big">
-          <div class="attention-card">
-            <div class="attention-kicker">Portfolio Watch</div>
-            <h1 class="attention-question">Anything big?</h1>
+      <section class="intro-strip" aria-label="Playbook description">
+        <div class="intro-copy">
+          <div class="intro-kicker">Portfolio Watch</div>
+          <h2 class="intro-title">这个 Playbook 是用来判断今天有没有值得打开看的持仓变化。</h2>
+          <p class="intro-text" id="playbookIntro">
+            它监控价格变化、成交量、趋势、波动率、组合影响，以及相对 SPY/QQQ 的表现。
+          </p>
+        </div>
+        <span class="pill" id="attentionUpdated">更新 --</span>
+      </section>
 
-            <div class="attention-status-row">
-              <div class="overall-status">
-                <div class="attention-meta-label">当前判断</div>
-                <div class="overall-label" id="overallStatus">...</div>
-                <div class="overall-subtitle" id="overallSubtitle">...</div>
-              </div>
-              <span class="status-badge" id="overallBadge">...</span>
+      <section class="visual-stage" aria-label="Anything big">
+        <div class="attention-card">
+          <div class="attention-header">
+            <div>
+              <div class="attention-kicker">Anything big?</div>
+              <h1 class="attention-question" id="overallStatus">...</h1>
+              <div class="attention-lede" id="attentionWhy">...</div>
             </div>
+            <span class="status-badge" id="overallBadge">...</span>
+          </div>
 
-            <div class="attention-meta-label answer-heading">每只持仓</div>
-            <div class="answer-list" id="todayAnswers"></div>
+          <div class="answer-list" id="todayAnswers"></div>
 
-            <div class="attention-meta-grid">
-              <div>
-                <div class="attention-meta-label">为什么</div>
-                <div class="why-text" id="attentionWhy">...</div>
-              </div>
-              <div>
-                <div class="attention-meta-label">是不是组合问题</div>
-                <div class="why-text" id="portfolioScope">...</div>
-              </div>
-              <div>
-                <div class="attention-meta-label">最近检查</div>
-                <div class="why-text" id="lastChecked">...</div>
-              </div>
-              <div>
-                <div class="attention-meta-label">下一次留意</div>
-                <div class="next-watch-text" id="nextWatch">...</div>
-              </div>
-            </div>
+          <div class="focus-block">
+            <div class="attention-meta-label">现在最该看</div>
+            <div class="focus-list" id="focusHighlights"></div>
           </div>
-        </aside>
+        </div>
+      </section>
 
-        <div class="chart-panel">
-          <div class="chart-toolbar" aria-label="Trend chart controls">
-            <div class="control-group">
-              <span class="control-label">View</span>
-              <div class="segmented" id="modeTabs" aria-label="Chart mode"></div>
-            </div>
-            <div class="control-group">
-              <span class="control-label">Range</span>
-              <div class="segmented" id="rangeTabs" aria-label="Chart range"></div>
-            </div>
-            <div class="control-group benchmark-group">
-              <span class="control-label">Benchmark</span>
-              <div class="control-row" id="benchmarkControls" aria-label="Benchmark controls"></div>
-            </div>
+      <section class="chart-panel" aria-label="Portfolio trend">
+        <div class="section-title">
+          <span class="section-title-text">组合 vs 市场</span>
+          <span class="section-meta" id="chartRead">Portfolio, SPY, QQQ</span>
+        </div>
+        <div class="chart-toolbar" aria-label="Trend chart controls">
+          <div class="control-group">
+            <span class="control-label">View</span>
+            <div class="segmented" id="modeTabs" aria-label="Chart mode"></div>
           </div>
-          <div class="chart-shell">
-            <div id="trendChart" class="trend-chart-container"></div>
+          <div class="control-group">
+            <span class="control-label">Range</span>
+            <div class="segmented" id="rangeTabs" aria-label="Chart range"></div>
           </div>
-          <div class="ticker-controls">
-            <div class="chip-row" id="tickerControls" aria-label="Ticker controls"></div>
+          <div class="control-group benchmark-group">
+            <span class="control-label">Benchmark</span>
+            <div class="control-row" id="benchmarkControls" aria-label="Benchmark controls"></div>
           </div>
+        </div>
+        <div class="chart-shell">
+          <div id="trendChart" class="trend-chart-container"></div>
+        </div>
+        <div class="ticker-controls">
+          <div class="chip-row" id="tickerControls" aria-label="Ticker controls"></div>
         </div>
       </section>
 
@@ -735,17 +862,17 @@
         </div>
 
         <div class="panel col-6">
-          <div class="section-title"><span class="section-title-text">为什么这么判断</span></div>
+          <div class="section-title"><span class="section-title-text">证据明细</span></div>
           <div class="detail-grid" id="signalDetails"></div>
         </div>
 
         <div class="panel col-6">
-          <div class="section-title"><span class="section-title-text">为什么没通知你</span></div>
+          <div class="section-title"><span class="section-title-text">通知状态</span></div>
           <div class="detail-grid" id="alertHistory"></div>
         </div>
 
         <div class="panel col-12">
-          <div class="section-title"><span class="section-title-text">当前在看什么</span></div>
+          <div class="section-title"><span class="section-title-text">监控范围</span></div>
           <div id="capabilityStatus"></div>
         </div>
       </section>
@@ -847,6 +974,10 @@
         if (typeof value !== "number" || !Number.isFinite(value)) return "--";
         return (value >= 0 ? "+" : "") + fmtNumber(value, 2) + "%";
       }
+      function fmtRatio(value) {
+        if (typeof value !== "number" || !Number.isFinite(value)) return "--";
+        return fmtNumber(value, 2) + "x";
+      }
       function fmtMoney(value) {
         if (typeof value !== "number" || !Number.isFinite(value)) return "--";
         if (Math.abs(value) >= 1e12) return "$" + fmtNumber(value / 1e12, 2) + "T";
@@ -924,9 +1055,9 @@
         return "当前没有值得你查看的变化。";
       }
       function colorBadge(color) {
-        if (color === "red") return "RED";
-        if (color === "yellow") return "YELLOW";
-        return "GREEN";
+        if (color === "red") return "红色";
+        if (color === "yellow") return "黄色";
+        return "绿色";
       }
       function statusClass(color) {
         if (color === "red") return "is-down";
@@ -954,6 +1085,11 @@
           `<span class="pill">${escapeHtml(benchmarkText)}</span>` +
           `<span class="pill">更新 ${escapeHtml(fmtDate(summary.asOf))}</span>` +
           (summary.missingBenchmarks ? `<span class="pill">缺失基准: ${escapeHtml(summary.missingBenchmarks)}</span>` : "");
+        const universe = summary.universe || "这些持仓";
+        document.getElementById("playbookIntro").textContent =
+          `它监控 ${universe} 的价格变化、成交量、趋势、波动率、组合影响，以及相对 SPY/QQQ 的表现，用来判断今天有没有值得你打开看的变化。`;
+        document.getElementById("chartRead").textContent =
+          `组合今日 ${fmtPct(summary.return1d)} / ${benchmarkText}`;
       }
       function attentionStatusModel(summary, decision, signals) {
         const explicit = normalizedColor(decision.bigStatusColor || summary.bigStatusColor);
@@ -971,7 +1107,7 @@
         if (state === "sent" || highCount > 0 || summary.riskState === "Alert") {
           return {
             color: "red",
-            badge: "RED",
+            badge: colorBadge("red"),
             label: colorLabel("red"),
             subtitle: colorBody("red"),
           };
@@ -979,14 +1115,14 @@
         if (state === "watch" || attentionCount > 0 || summary.riskState === "Watch") {
           return {
             color: "yellow",
-            badge: "YELLOW",
+            badge: colorBadge("yellow"),
             label: colorLabel("yellow"),
             subtitle: colorBody("yellow"),
           };
         }
         return {
           color: "green",
-          badge: "GREEN",
+          badge: colorBadge("green"),
           label: colorLabel("green"),
           subtitle: colorBody("green"),
         };
@@ -1004,6 +1140,54 @@
         }
         return "价格、成交量、趋势、波动率或组合影响出现更明显变化。";
       }
+      function signalBySymbolMap(signals) {
+        const bySymbol = {};
+        signals.forEach((signal) => {
+          if (!bySymbol[signal.symbol] || (signal.score || 0) > (bySymbol[signal.symbol].score || 0)) {
+            bySymbol[signal.symbol] = signal;
+          }
+        });
+        return bySymbol;
+      }
+      function portfolioImpactFor(asset, signal) {
+        if (signal && typeof signal.portfolioImpactPct === "number") return signal.portfolioImpactPct;
+        if (asset && typeof asset.portfolioImpactPct === "number") return asset.portfolioImpactPct;
+        if (asset && typeof asset.return1d === "number" && typeof asset.watchWeightPct === "number") {
+          return Math.abs(asset.return1d) * asset.watchWeightPct / 100;
+        }
+        return null;
+      }
+      function holdingEvidence(asset, signal) {
+        const row = asset || signal || {};
+        const impact = portfolioImpactFor(asset, signal);
+        const relText = typeof row.relativeReturn1d === "number" ? `，相对 SPY ${fmtPct(row.relativeReturn1d)}` : "";
+        return `${row.symbol || "--"} 今日 ${fmtPct(row.return1d)}${relText}，成交量 ${fmtRatio(row.volumeRatio20d)}，组合影响 ${fmtPct(impact)}。`;
+      }
+      function topSignals(signals, limit) {
+        return signals.slice()
+          .sort((a, b) => {
+            const priorityDiff = reviewPriorityForRow(b) - reviewPriorityForRow(a);
+            if (priorityDiff) return priorityDiff;
+            return (b.score || 0) - (a.score || 0);
+          })
+          .slice(0, limit);
+      }
+      function portfolioRead(summary, assets, signals, color) {
+        const active = signals.filter((row) => reviewColorForRow(row) !== "green");
+        const red = active.filter((row) => reviewColorForRow(row) === "red");
+        const yellow = active.filter((row) => reviewColorForRow(row) === "yellow");
+        const portfolioMove = `组合今日 ${fmtPct(summary.return1d)}`;
+        if (red.length) {
+          return `${portfolioMove}。${red.map((row) => row.symbol).join("、")} 已达到请立即关注级别。`;
+        }
+        if (yellow.length) {
+          return `${portfolioMove}。${yellow.map((row) => row.symbol).join("、")} 有变化值得留意，但还没有达到立即关注级别。`;
+        }
+        return `${portfolioMove}。当前没有持仓达到需要关注的变化。`;
+      }
+      function miniMetric(label, value, className) {
+        return `<div class="mini-metric"><div class="mini-label">${escapeHtml(label)}</div><div class="mini-value ${className || ""}">${escapeHtml(value)}</div></div>`;
+      }
       function renderAttentionStatus(summary, decision, assets, signals) {
         const model = attentionStatusModel(summary, decision, signals);
         const badge = document.getElementById("overallBadge");
@@ -1011,30 +1195,37 @@
         badge.classList.remove("green", "yellow", "red");
         badge.classList.add(model.color);
         document.getElementById("overallStatus").textContent = model.label;
-        document.getElementById("overallSubtitle").textContent = model.subtitle;
-        document.getElementById("attentionWhy").textContent = decision.decisionBody || model.subtitle;
-        document.getElementById("portfolioScope").textContent = decision.portfolioScope || summary.portfolioScope || "没有看到组合层面的异常。";
-        document.getElementById("lastChecked").textContent = fmtDate(summary.asOf || decision.asOf);
-        document.getElementById("nextWatch").textContent = buildNextWatch(summary, decision, signals);
+        document.getElementById("attentionWhy").textContent = portfolioRead(summary, assets, signals, model.color);
+        document.getElementById("attentionUpdated").textContent = "更新 " + fmtDate(summary.asOf || decision.asOf);
 
-        const signalBySymbol = {};
-        signals.forEach((signal) => {
-          if (!signalBySymbol[signal.symbol] || (signal.score || 0) > (signalBySymbol[signal.symbol].score || 0)) {
-            signalBySymbol[signal.symbol] = signal;
-          }
-        });
+        const signalBySymbol = signalBySymbolMap(signals);
         document.getElementById("todayAnswers").innerHTML = assets.map((asset) => {
           const signal = signalBySymbol[asset.symbol];
           const answer = answerForAsset(asset, signal);
-          const detail = signal
-            ? signal.reviewReason || signal.reason || signal.technicalSummary || `${asset.priceState || "--"} / ${asset.trendState || "--"}`
-            : asset.reviewReason || `${asset.symbol} 当前没有值得你查看的变化。`;
-          return `<div class="answer-row">` +
-            `<div class="answer-symbol">${escapeHtml(asset.symbol)}</div>` +
-            `<div><div class="answer-state ${answer.className}">${escapeHtml(answer.label)}</div>` +
-            `<div class="answer-detail">${escapeHtml(detail)}</div></div>` +
-            `</div>`;
+          const color = reviewColorForRow(signal || asset);
+          const impact = portfolioImpactFor(asset, signal);
+          return `<article class="answer-row ${escapeHtml(color)}">` +
+            `<div class="answer-top"><div class="answer-symbol">${escapeHtml(asset.symbol)}</div><div class="answer-state ${answer.className}">${escapeHtml(answer.label)}</div></div>` +
+            `<div class="answer-detail">${escapeHtml(holdingEvidence(asset, signal))}</div>` +
+            `<div class="mini-metrics">` +
+            miniMetric("1D", fmtPct(asset.return1d), clsFor(asset.return1d)) +
+            miniMetric("相对 SPY", fmtPct(asset.relativeReturn1d), clsFor(asset.relativeReturn1d)) +
+            miniMetric("成交量", fmtRatio(asset.volumeRatio20d)) +
+            miniMetric("组合影响", fmtPct(impact)) +
+            `</div>` +
+            `</article>`;
         }).join("");
+
+        const top = topSignals(signals, 2).filter((row) => reviewColorForRow(row) !== "green");
+        document.getElementById("focusHighlights").innerHTML = top.length ? top.map((row) => {
+          const asset = assets.find((item) => item.symbol === row.symbol) || {};
+          const color = reviewColorForRow(row);
+          return `<article class="focus-row">` +
+            `<div class="signal-top"><span class="signal-symbol">${escapeHtml(row.symbol)}</span><span class="severity ${escapeHtml(color)}">${escapeHtml(row.reviewLabel || colorLabel(color))}</span></div>` +
+            `<div class="focus-title">${escapeHtml(holdingEvidence(asset, row))}</div>` +
+            `<div class="focus-text">${escapeHtml(row.technicalSummary || row.confirmationStatus || "")}</div>` +
+            `</article>`;
+        }).join("") : `<article class="focus-row"><div class="focus-title">无需关注</div><div class="focus-text">当前没有持仓达到关注线。</div></article>`;
       }
       function renderModeTabs() {
         document.getElementById("modeTabs").innerHTML = MODES.map((mode) =>
@@ -1240,9 +1431,9 @@
       function rawCell(html, className) {
         return `<div class="watch-table-cell ${className || ""}">${html}</div>`;
       }
-      function technicalCell(row) {
+      function technicalCell(row, signal) {
         const driver = row.primaryTechnicalDriver ? `主要变化：${stateText(row.primaryTechnicalDriver)}` : "主要变化：--";
-        const summary = row.reviewReason || row.technicalSummary || row.evidence || "";
+        const summary = holdingEvidence(row, signal);
         return rawCell(
           `<div class="tech-cell-title">${escapeHtml(driver)}</div>` +
           `<div class="tech-cell-sub">${escapeHtml(summary)}</div>`,
@@ -1272,10 +1463,11 @@
           document.getElementById("signalList").innerHTML = important.map((row) => {
             const anchor = row.deepLinkAnchor || `signal-${row.signalId}`;
             const color = reviewColorForRow(row);
+            const asset = allAssets.find((item) => item.symbol === row.symbol) || {};
             return `<a class="signal-card" href="#${escapeHtml(anchor)}">` +
               `<div class="signal-top"><span class="signal-symbol">${escapeHtml(row.symbol)}</span><span class="severity ${escapeHtml(color)}">${escapeHtml(row.reviewLabel || colorLabel(color))}</span></div>` +
-              `<div class="signal-title">${escapeHtml(row.reviewLabel || colorLabel(color))}</div>` +
-              `<div class="signal-reason">${escapeHtml(row.reviewReason || row.reason)}</div>` +
+              `<div class="signal-title">${escapeHtml(signalIntent(row))}</div>` +
+              `<div class="signal-reason">${escapeHtml(holdingEvidence(asset, row))}</div>` +
               techChips(row) +
               `<div class="metric-caption">${escapeHtml(signalIntent(row))} / 组合影响 ${fmtPct(row.portfolioImpactPct)}</div>` +
               `</a>`;
@@ -1284,10 +1476,11 @@
         document.getElementById("signalDetails").innerHTML = detailRows.map((row) => {
           const anchor = row.deepLinkAnchor || `signal-${row.signalId}`;
           const color = reviewColorForRow(row);
+          const asset = allAssets.find((item) => item.symbol === row.symbol) || {};
           return `<article class="detail-card" id="${escapeHtml(anchor)}">` +
             `<div class="signal-top"><span class="signal-symbol">${escapeHtml(row.symbol)}</span><span class="severity ${escapeHtml(color)}">${escapeHtml(row.reviewLabel || colorLabel(color))}</span></div>` +
-            `<div class="signal-title">${escapeHtml(row.reviewReason || row.title)}</div>` +
-            `<div class="detail-text">${escapeHtml(row.confirmationStatus || "")}</div>` +
+            `<div class="signal-title">${escapeHtml(holdingEvidence(asset, row))}</div>` +
+            `<div class="detail-text">${escapeHtml(row.technicalSummary || row.confirmationStatus || "")}</div>` +
             techChips(row) +
             `<div class="evidence-pair">` +
             `<div class="evidence-box"><div class="evidence-label">已接入证据</div><div class="detail-text">${escapeHtml(row.evidencePresent || row.evidence || "")}</div></div>` +
@@ -1299,12 +1492,15 @@
       }
       function renderAlerts(alerts, decision) {
         if (decision && decision.notificationAudit) {
+          const color = normalizedColor(decision.bigStatusColor) || "green";
+          const sent = decision.notificationState === "sent";
+          const title = sent ? "已通知你" : "未通知";
           document.getElementById("alertHistory").innerHTML =
             `<article class="alert-card">` +
-            `<div class="signal-top"><span class="signal-symbol">PORTFOLIO</span><span class="severity ${escapeHtml(normalizedColor(decision.bigStatusColor) || "quiet")}">${escapeHtml(decision.bigStatusLabel || "无需关注")}</span></div>` +
-            `<div class="signal-title">${escapeHtml(decision.decisionTitle || "无需关注")}</div>` +
-            `<div class="detail-text">${escapeHtml(decision.notificationAudit)}</div>` +
-            `<div class="metric-caption">${escapeHtml(decision.nextAction || "无需操作。")}</div>` +
+            `<div class="signal-top"><span class="signal-symbol">PORTFOLIO</span><span class="severity ${escapeHtml(color)}">${escapeHtml(decision.bigStatusLabel || "无需关注")}</span></div>` +
+            `<div class="signal-title">${escapeHtml(title)}</div>` +
+            `<div class="detail-text">${escapeHtml(decision.notificationAudit || "")}</div>` +
+            `<div class="metric-caption">当前等级：${escapeHtml(decision.bigStatusLabel || "无需关注")} / ${escapeHtml(fmtDate(decision.asOf))}</div>` +
             `</article>`;
           return;
         }
@@ -1387,6 +1583,7 @@
       }
       function renderTable(assets) {
         document.getElementById("tableStamp").textContent = assets.length ? fmtDate(assets[0].asOf) : "";
+        const signalBySymbol = signalBySymbolMap(allSignals);
         const sorted = assets.slice().sort((a, b) => {
           const priorityDiff = reviewPriorityForRow(b) - reviewPriorityForRow(a);
           if (priorityDiff) return priorityDiff;
@@ -1394,20 +1591,23 @@
         });
         document.getElementById("assetTable").innerHTML =
           `<div class="watch-table-row table-header">` +
-          cell("Symbol") + cell("Weight") + cell("1D") + cell("Rel 1D") +
-          cell("状态") + cell("为什么") + cell("证据") +
+          cell("Symbol") + cell("Weight") + cell("1D") + cell("相对 SPY") +
+          cell("成交量") + cell("组合影响") + cell("状态") + cell("证据") +
           `</div>` +
-          sorted.map((row) =>
-            `<div class="watch-table-row table-body-row">` +
+          sorted.map((row) => {
+            const signal = signalBySymbol[row.symbol];
+            const impact = portfolioImpactFor(row, signal);
+            return `<div class="watch-table-row table-body-row">` +
             cell(row.symbol) +
             cell(fmtNumber(row.watchWeightPct, 2) + "%") +
             cell(fmtPct(row.return1d), clsFor(row.return1d)) +
             cell(fmtPct(row.relativeReturn1d), clsFor(row.relativeReturn1d)) +
+            cell(fmtRatio(row.volumeRatio20d)) +
+            cell(fmtPct(impact)) +
             cell(row.reviewLabel || colorLabel(reviewColorForRow(row)), statusClass(reviewColorForRow(row))) +
-            technicalCell(row) +
-            cell(`${stateText(row.priceState)} / ${stateText(row.volumeState)}`) +
-            `</div>`
-          ).join("");
+            technicalCell(row, signal) +
+            `</div>`;
+          }).join("");
         initTableAlignment(document.getElementById("assetTable"));
       }
       async function init() {

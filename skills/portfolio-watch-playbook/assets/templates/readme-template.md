@@ -5,6 +5,10 @@ designed to answer `Anything big?` with a simple red/yellow/green result, which
 holdings deserve attention, why, and whether the change is important enough to
 notify the user.
 
+It monitors price action, volume, trend, volatility, portfolio impact, and
+SPY/QQQ context. It does not claim to monitor news, earnings, analyst revisions,
+or company catalysts unless those sources are explicitly listed below.
+
 ## Inputs and assumptions
 
 - Universe: `REPLACE_UNIVERSE`
@@ -43,13 +47,13 @@ The first screen starts with `Anything big?`, which answers:
 - `Green / 无需关注`: current data shows nothing worth checking.
 - `Yellow / 留意一下`: something is worth a look, but not urgent.
 - `Red / 请立即关注`: a major change crossed the interruption bar.
-- Why the status was assigned.
-- Whether the issue looks like one holding or the whole portfolio.
-- Last checked timestamp.
-- Next watch condition.
+- One row per holding with 1D move, relative move versus SPY, volume ratio, and
+  portfolio impact.
+- The top one or two evidence-backed changes worth inspecting.
+- A compact last-checked timestamp.
 
-Desktop shows the status panel beside the chart. Mobile shows the status panel
-first, then the chart immediately after it.
+The portfolio trend chart sits directly below the Anything Big region as the
+next evidence layer.
 
 ## Visual exploration
 
@@ -139,7 +143,7 @@ thresholds, or repeated quiet audit rows.
 The Playbook contains:
 
 - Anything Big Status: the first-screen answer to whether anything needs
-  attention.
+  attention, backed by concrete holding-level values.
 - Portfolio Trend: chart evidence for portfolio, holdings, SPY, and QQQ when
   available.
 - Today queue: ranked events that deserve inspection.

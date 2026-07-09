@@ -1,11 +1,10 @@
 # UI Contract
 
 Build the Playbook as a status-first portfolio watch surface, not a generic
-stock table or notification log. The first viewport should answer `Anything
-big?` with a red/yellow/green result, what changed by holding, why that is or is
-not worth attention, whether it is a single-holding or portfolio-wide issue,
-when the monitor last checked, what it is watching next, and what chart
-evidence supports the answer.
+stock table or notification log. The first viewport should explain what the
+Playbook monitors, answer `Anything big?` with a red/yellow/green result, show
+what changed by holding with concrete values, and put the portfolio chart
+directly below as evidence.
 
 ## Required Views
 
@@ -17,19 +16,22 @@ This is the first useful region in the iframe. It reads `alerts/decision`,
 Show a compact decision surface:
 
 - Main question: `Anything big?`
+- One-sentence product explanation: this Playbook monitors price moves, volume,
+  trend, volatility, portfolio impact, and SPY/QQQ context.
 - Status:
   - `Green / 无需关注`: 当前没有值得你查看的变化。
   - `Yellow / 留意一下`: 有变化值得看看，但还不到需要立刻处理。
   - `Red / 请立即关注`: 有重大变化，建议现在查看。
-- Holding answers: one row per working holding using the same labels.
-- Why: one ordinary-language sentence from `alerts/decision`.
-- Scope: whether this looks like one holding or the whole portfolio.
-- Last checked and next watch condition. Do not invent future catalysts; if no
-  event source is wired, write a condition-based trigger.
+- Holding answers: one row per working holding using the same labels and
+  showing 1D return, relative return versus SPY, volume ratio, and portfolio
+  impact.
+- Top changes: one or two evidence-backed lines that explain what is worth
+  opening now or later.
+- Last checked should be a small timestamp, not a content block.
 
-On desktop, place this status panel beside the portfolio trend chart. On mobile,
-show this panel first and the chart immediately after it. Do not let KPI cards,
-alert history, raw scores, or internal mechanism words crowd out this answer.
+Place the chart directly below the Anything Big region on desktop and mobile.
+Do not let KPI cards, alert history, raw scores, internal mechanism words,
+empty "why" fields, or generic "worth a look" copy crowd out this answer.
 
 ## Portfolio Trend
 
@@ -69,7 +71,8 @@ Each row/card must include:
 
 - Symbol and title.
 - User status label: `无需关注`, `留意一下`, or `请立即关注`.
-- Short reason in ordinary language.
+- Short reason in ordinary language with concrete values: 1D move, relative move
+  versus SPY, volume ratio, and portfolio impact when available.
 - Four evidence chips: price, volume, trend, and volatility.
 - Portfolio impact.
 - Evidence summary.
@@ -109,7 +112,7 @@ Show the current portfolio state:
 - High and medium signal counts.
 - Weighting and benchmark assumptions.
 
-## 为什么这么判断
+## 证据明细
 
 Each signal must have a stable anchor such as `#signal-<signalId>` so alerts can
 open the matching detail. The detail should show:

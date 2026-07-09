@@ -63,7 +63,8 @@ Required fields:
 - `volumeRatio20d`, `moveVsNormal`, `rangeRatio20d`
 - `rsi14`, `ma20`, `ma60`, `ma20DistancePct`, `ma60DistancePct`
 - `peRatio`, `marketCap`
-- `attentionScore`, `technicalScore`, `primaryTechnicalDriver`
+- `attentionScore`, `technicalScore`, `portfolioImpactPct`,
+  `primaryTechnicalDriver`
 - `technicalSummary`
 - `priceState`, `volumeState`, `trendState`, `volatilityState`
 - `reviewColor`, `reviewLabel`, `reviewReason`
@@ -207,7 +208,9 @@ Required fields:
 - Technical analysis must expose price, volume, trend, and volatility states as
   structured fields. Price abnormality remains the main trigger; volume, trend,
   and volatility should confirm, contextualize, or weaken the signal.
-- Keep signal reasons short and evidence-backed.
+- Keep signal reasons short and evidence-backed. User-facing reasons should
+  include concrete values such as 1D return, relative return, volume ratio, and
+  portfolio impact instead of generic "worth a look" phrasing.
 - Keep `alerts/decision` plain-language and user-facing. The page must not
   require users to translate severity bands, score thresholds, or quiet audit
   rows to understand the current state.

@@ -8,9 +8,9 @@ description: Build reusable Alva Portfolio Watch Playbooks from a user's tickers
 Build a reusable Portfolio Watch Playbook, not a one-off ticker dashboard. Turn
 an incomplete user request into a running Alva workflow that normalizes the
 portfolio, computes attention-ranked signals, renders a status-first Playbook
-that answers `Anything big?` with a plain red/yellow/green result, shows chart
-evidence beside or immediately after the answer, and pushes only
-high-confidence alerts that link back to the matching signal.
+that answers `Anything big?` with a plain red/yellow/green result, shows
+concrete evidence for each holding, places the chart as the next evidence layer,
+and pushes only high-confidence alerts that link back to the matching signal.
 
 ## Build Order
 
@@ -40,22 +40,22 @@ high-confidence alerts that link back to the matching signal.
 
 The first screen must answer: **Anything big?** It should show, in this order:
 
-1. A red/yellow/green answer in user language:
+1. A one-sentence explanation of what the Playbook monitors: price, volume,
+   trend, volatility, portfolio impact, and SPY/QQQ context.
+2. A red/yellow/green answer in user language:
    - `Green / 无需关注`: current data shows nothing worth checking.
    - `Yellow / 留意一下`: something is worth a look, but not urgent.
    - `Red / 请立即关注`: a major change crossed the interruption bar.
-2. One plain-language answer for each working holding.
-3. Why the status was assigned and whether it looks like a single-holding
-   change or a portfolio-wide problem.
-4. Last checked timestamp and the next watch condition.
-5. The portfolio trend chart as immediate evidence.
+3. One row per working holding with concrete evidence: 1D move, relative move,
+   volume ratio, and portfolio impact.
+4. The top one or two changes worth inspecting, using evidence-backed language.
+5. The portfolio trend chart as the next evidence layer.
 
-On desktop, keep the attention status and trend chart in the same first
-viewport. On mobile, show the attention status first and the chart immediately
-after it. Do not make users start with `Watch`, `Medium`, score numbers,
-`Portfolio risk elevated`, repeated quiet rows, or raw indicator tables. Charts
-remain the evidence layer; the primary product answer is whether anything big
-happened.
+Keep `Anything big?` as the complete first region and place the chart directly
+below it. Do not make users start with `Watch`, `Medium`, score numbers,
+`Portfolio risk elevated`, repeated quiet rows, empty "why" fields, or raw
+indicator tables. Charts remain the evidence layer; the primary product answer
+is whether anything big happened and what concrete data supports that answer.
 
 ## Defaults
 

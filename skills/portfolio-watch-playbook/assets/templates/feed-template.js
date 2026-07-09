@@ -89,6 +89,7 @@ feed.def("watch", {
     num("marketCap"),
     num("attentionScore"),
     num("technicalScore"),
+    num("portfolioImpactPct"),
     str("primaryTechnicalDriver"),
     str("technicalSummary"),
     str("priceState"),
@@ -450,6 +451,30 @@ function driverLabel(driver) {
   return "价格";
 }
 
+function stateLabel(value) {
+  const map = {
+    "abnormal up": "异常上涨",
+    "abnormal down": "异常下跌",
+    weak: "偏弱",
+    firm: "偏强",
+    normal: "正常",
+    "volume spike": "明显放量",
+    "volume elevated": "成交量偏高",
+    "normal volume": "成交量正常",
+    "volume unknown": "成交量未知",
+    "trend firm": "趋势偏强",
+    "trend weak": "趋势偏弱",
+    "trend stable": "趋势稳定",
+    "trend unknown": "趋势未知",
+    stretched: "走势拉伸",
+    "volatility expanded": "波动扩大",
+    "volatility elevated": "波动偏高",
+    "normal volatility": "波动正常",
+    "volatility unknown": "波动未知",
+  };
+  return map[value] || value || "--";
+}
+
 function reviewColorFor(scored) {
   if (scored.severity === "high" && scored.portfolioImpactPct >= CONFIG.redPortfolioImpactPct) return "red";
   if (scored.severity === "high" || scored.severity === "medium") return "yellow";
@@ -463,14 +488,25 @@ function confirmationStatus(scored) {
   return "成交量没有明显放大，且本版本未接入新闻、财报或预期变化确认。";
 }
 
-function buildReviewReason(symbol, color, returns, scored) {
+function buildEvidenceLine(symbol, returns, scored, technicalInputs, context) {
+  const benchmarkName = context.benchmark || "基准";
+  const relative = context.relativeReturn1d === null
+    ? ""
+    : "，相对 " + benchmarkName + " " + signedPctText(context.relativeReturn1d, 2);
+  return symbol + " 今日 " + signedPctText(returns.return1d, 2) + relative +
+    "，成交量为 20 日中位数的 " + ratioText(technicalInputs.volumeRatio20d, 2) +
+    "，组合影响 " + signedPctText(scored.portfolioImpactPct, 2) + "。";
+}
+
+function buildReviewReason(symbol, color, returns, scored, technicalInputs, context) {
+  const evidenceLine = buildEvidenceLine(symbol, returns, scored, technicalInputs, context);
   if (color === "red") {
-    return symbol + " 出现较大异常，且对组合影响较明显，建议现在查看。";
+    return evidenceLine + " 这已经达到立即关注级别。";
   }
   if (color === "yellow") {
-    return symbol + " 今天" + driverLabel(scored.primaryTechnicalDriver) + "有变化值得看看，但还不到需要立刻处理。";
+    return evidenceLine + " 主要变化来自" + driverLabel(scored.primaryTechnicalDriver) + "，值得留意，但还不到立即提醒。";
   }
-  return symbol + " 当前没有值得你查看的变化。";
+  return evidenceLine + " 当前没有达到关注线。";
 }
 
 function buildEvidencePresent(returns, scored, technicalInputs) {
@@ -487,13 +523,13 @@ function buildEvidenceMissing() {
 }
 
 function buildTechnicalSummary(symbol, returns, scored, technicalInputs) {
-  const posture = scored.severity === "low" ? "technical picture is calm" : "technical picture needs a look";
-  return symbol + " " + posture + ": price " + scored.priceState + " at " + signedPctText(returns.return1d, 2) +
-    " today; volume " + ratioText(technicalInputs.volumeRatio20d, 2) + " the 20-day median; trend " +
-    scored.trendState + " (MA20 " + signedPctText(technicalInputs.ma20DistancePct, 2) + ", MA60 " +
-    signedPctText(technicalInputs.ma60DistancePct, 2) + "); volatility " + scored.volatilityState +
-    " (" + ratioText(technicalInputs.moveVsNormal, 2) + " normal move, " +
-    ratioText(technicalInputs.rangeRatio20d, 2) + " normal range).";
+  return symbol + "：价格状态 " + stateLabel(scored.priceState) + "，今日 " + signedPctText(returns.return1d, 2) +
+    "；成交量 " + ratioText(technicalInputs.volumeRatio20d, 2) + " 20 日中位数；" +
+    stateLabel(scored.trendState) + "，MA20 距离 " + signedPctText(technicalInputs.ma20DistancePct, 2) +
+    "，MA60 距离 " + signedPctText(technicalInputs.ma60DistancePct, 2) +
+    "；" + stateLabel(scored.volatilityState) + "，价格波动为平常的 " +
+    ratioText(technicalInputs.moveVsNormal, 2) + "，日内区间为平常的 " +
+    ratioText(technicalInputs.rangeRatio20d, 2) + "。";
 }
 
 function scoreAsset(input) {
@@ -639,9 +675,13 @@ async function buildSymbol(row, benchmarkReturns, startSec, endSec, nowMs, maxWe
     ma20DistancePct,
     ma60DistancePct,
   };
+  const evidenceContext = {
+    benchmark: CONFIG.primaryBenchmark,
+    relativeReturn1d,
+  };
   const reviewColor = reviewColorFor(scored);
   const reviewLabel = statusLabel(reviewColor);
-  const reviewReason = buildReviewReason(row.symbol, reviewColor, returns, scored);
+  const reviewReason = buildReviewReason(row.symbol, reviewColor, returns, scored, technicalInputs, evidenceContext);
   const confirmation = confirmationStatus(scored);
   const evidencePresent = buildEvidencePresent(returns, scored, technicalInputs);
   const evidenceMissing = buildEvidenceMissing();
@@ -649,8 +689,8 @@ async function buildSymbol(row, benchmarkReturns, startSec, endSec, nowMs, maxWe
 
   const signalId = row.symbol.toLowerCase() + "-" + scored.trigger.type + "-" + String(latest.time_close || nowMs);
   const reason = scored.severity === "low"
-    ? row.symbol + " has no high-priority attention signal in this run."
-    : scored.trigger.label + " is the main technical driver.";
+    ? row.symbol + " 当前未进入关注区。"
+    : driverLabel(scored.primaryTechnicalDriver) + "是本次主要变化。";
   const evidence =
     "1D " + signedPctText(returns.return1d, 2) + "; weight " + round(row.weight * 100, 2) +
     "%; move " + ratioText(moveVsNormal, 2) + " normal; volume " + ratioText(volumeRatio20d, 2) +
@@ -685,6 +725,7 @@ async function buildSymbol(row, benchmarkReturns, startSec, endSec, nowMs, maxWe
     marketCap: round(metrics.marketCap, 0),
     attentionScore: scored.score,
     technicalScore: scored.technicalScore,
+    portfolioImpactPct: round(scored.portfolioImpactPct, 2),
     primaryTechnicalDriver: scored.primaryTechnicalDriver,
     technicalSummary,
     priceState: scored.priceState,
@@ -706,7 +747,7 @@ async function buildSymbol(row, benchmarkReturns, startSec, endSec, nowMs, maxWe
     symbol: row.symbol,
     severity: scored.severity,
     score: scored.score,
-    title: row.symbol + " " + (scored.severity === "high" ? "needs attention" : scored.severity === "medium" ? "is on watch" : "is normal"),
+    title: row.symbol + " " + reviewLabel,
     reason,
     evidence,
     technicalSummary,
@@ -867,12 +908,13 @@ function buildPortfolioScope(signalRecords, weightedReturn1d) {
   const red = active.filter((signal) => signal.reviewColor === "red");
   const negativeActive = active.filter((signal) => typeof signal.metricValue === "number" && signal.metricValue > 0 && signal.priceState === "abnormal down");
   if (red.length > 1 || active.length > 1 || (typeof weightedReturn1d === "number" && weightedReturn1d <= -1.5 && negativeActive.length)) {
-    return "多只持仓同时有变化，组合层面需要留意。";
+    return "组合今日 " + signedPctText(weightedReturn1d, 2) + "；" +
+      active.map((signal) => signal.symbol).join("、") + " 同时进入留意区。";
   }
   if (active.length === 1) {
-    return "这主要是单只股票的变化，不是整个组合的问题。";
+    return "组合今日 " + signedPctText(weightedReturn1d, 2) + "；主要变化来自 " + active[0].symbol + "。";
   }
-  return "没有看到组合层面的异常。";
+  return "组合今日 " + signedPctText(weightedReturn1d, 2) + "；没有持仓进入关注区。";
 }
 
 function topReviewSignal(signalRecords) {
@@ -897,7 +939,7 @@ function buildBigStatus(signalRecords, portfolioScope) {
   return {
     color,
     label: statusLabel(color),
-    body: top.reviewReason + " " + portfolioScope,
+    body: portfolioScope + " " + top.reviewReason,
   };
 }
 
@@ -1078,14 +1120,14 @@ function buildDecision(signals, alertRows, nowMs, latestAsOf, setupConfirmation,
       notificationState: state,
       decisionTitle: bigStatus.label,
       decisionBody: top.reviewColor === "yellow"
-        ? top.reviewReason + " " + portfolioScope
+        ? portfolioScope + " " + top.reviewReason
         : statusBody("green"),
       bigStatusColor: bigStatus.color,
       bigStatusLabel: bigStatus.label,
       bigStatusBody: bigStatus.body,
       portfolioScope,
       notificationAudit: top.reviewColor === "yellow"
-        ? "未发送通知，因为这条变化值得看，但还不到需要立刻处理。"
+        ? "未发送通知，因为当前是黄色“留意一下”，还没到红色“请立即关注”。" + top.reviewReason
         : "未发送通知，因为当前没有值得你查看的变化。",
       topSignalId: top.signalId,
       topSymbol: top.symbol,

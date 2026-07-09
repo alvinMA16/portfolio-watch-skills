@@ -53,10 +53,11 @@ separate local checkout of the official Alva Skill.
   `design-widgets.md`, and `user-facing-prose.md`.
 - Follow `ui-contract.md`: Anything Big status, portfolio trend, today queue,
   evidence explanation, holdings, notification audit, and capability status.
-- The first viewport must answer `Anything big?` with `无需关注`, `留意一下`, or
-  `请立即关注`, and show the portfolio trend chart as immediate evidence, with usable
-  Portfolio / Tickers / Compare controls and SPY / QQQ benchmark toggles when
-  data exists.
+- The first viewport must explain what is monitored, answer `Anything big?`
+  with `无需关注`, `留意一下`, or `请立即关注`, and show each holding's concrete 1D,
+  relative, volume, and portfolio-impact evidence. The portfolio trend chart
+  should sit directly below it with usable Portfolio / Tickers / Compare
+  controls and SPY / QQQ benchmark toggles when data exists.
 - The page must not claim news, earnings, analyst revisions, catalysts, or
   thesis drivers are monitored unless the feed actually writes those sourced
   outputs. Show unwired sources in `当前在看什么`.
