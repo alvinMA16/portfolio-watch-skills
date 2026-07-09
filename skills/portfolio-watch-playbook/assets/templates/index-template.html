@@ -370,6 +370,15 @@
         color: var(--text-n5);
         overflow-wrap: anywhere;
       }
+      .answer-context {
+        margin-top: var(--spacing-xs);
+        padding-top: var(--spacing-xs);
+        border-top: 1px solid var(--line-l05);
+        font-size: 12px;
+        line-height: 19px;
+        color: var(--text-n7);
+        overflow-wrap: anywhere;
+      }
       .mini-metrics {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -388,34 +397,6 @@
         font-size: 13px;
         line-height: 20px;
         color: var(--text-n9);
-      }
-      .focus-block {
-        margin-top: var(--spacing-xl);
-        padding-top: var(--spacing-l);
-        border-top: 1px solid var(--line-l05);
-      }
-      .focus-list {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: var(--spacing-s);
-        margin-top: var(--spacing-s);
-      }
-      .focus-row {
-        min-width: 0;
-        padding: var(--spacing-m);
-        border-radius: var(--radius-ct-s);
-        background: var(--grey-g01);
-      }
-      .focus-title {
-        font-size: 13px;
-        line-height: 21px;
-        color: var(--text-n9);
-      }
-      .focus-text {
-        margin-top: 2px;
-        font-size: 12px;
-        line-height: 19px;
-        color: var(--text-n6);
       }
       .attention-meta-grid {
         display: grid;
@@ -592,7 +573,7 @@
       }
       .evidence-table {
         width: 100%;
-        min-width: 940px;
+        min-width: 1100px;
         border-collapse: collapse;
       }
       .evidence-table th,
@@ -624,6 +605,13 @@
       .evidence-missing {
         margin-top: var(--spacing-xs);
         color: var(--text-n5);
+      }
+      .event-link {
+        color: var(--main-m1);
+        text-decoration: none;
+      }
+      .event-link:hover {
+        text-decoration: underline;
       }
       .capability-list {
         display: grid;
@@ -784,10 +772,6 @@
 
           <div class="answer-list" id="todayAnswers"></div>
 
-          <div class="focus-block" id="signals">
-            <div class="attention-meta-label">值得留意的变化</div>
-            <div class="focus-list" id="focusHighlights"></div>
-          </div>
         </div>
       </section>
 
@@ -852,6 +836,7 @@
         decision: feedPath("alerts", "decision", "@last/1"),
         narrative: feedPath("narrative", "brief", "@last/1"),
         capability: feedPath("capability", "status", "@last/1"),
+        context: feedPath("context", "events", "@last/30"),
       };
       const PALETTE = ["#2f8f9d", "#d96b5f", "#5e72c8", "#78994e", "#b565a7", "#c48c3f", "#60798d"];
       const FONT = "'Delight', -apple-system, 'OPPO Sans 4.0', BlinkMacSystemFont, sans-serif";
@@ -878,6 +863,7 @@
       let allChartRows = [];
       let allAssets = [];
       let allSignals = [];
+      let allContextEvents = [];
 
       function createAlvaClientConfig() {
         const params = new URLSearchParams(window.location.search);
@@ -1137,14 +1123,60 @@
           : "";
         return `${escapeHtml(row.symbol || "--")} 今日 <span class="${clsFor(row.return1d)}">${escapeHtml(fmtPct(row.return1d))}</span>${rel}，成交量 ${escapeHtml(fmtRatio(row.volumeRatio20d))}，组合影响 ${escapeHtml(fmtImpact(impact))}。`;
       }
-      function topSignals(signals, limit) {
-        return signals.slice()
-          .sort((a, b) => {
-            const priorityDiff = reviewPriorityForRow(b) - reviewPriorityForRow(a);
-            if (priorityDiff) return priorityDiff;
-            return (b.score || 0) - (a.score || 0);
-          })
-          .slice(0, limit);
+      function contextStateText(value) {
+        const map = {
+          matched_event: "有事件匹配",
+          near_earnings: "临近财报",
+          price_only: "未匹配事件",
+          context_unavailable: "事件源不可用",
+        };
+        return map[value] || value || "未匹配事件";
+      }
+      function contextEventsForSymbol(symbol) {
+        return allContextEvents
+          .filter((row) => row.symbol === symbol)
+          .sort((a, b) => (Date.parse(b.publishedAt || b.eventDate || b.asOf || 0) || 0) - (Date.parse(a.publishedAt || a.eventDate || a.asOf || 0) || 0));
+      }
+      function contextLine(row) {
+        if (!row) return "暂未匹配到新闻、财报日期或分析师变化。";
+        if (row.contextSummary) return row.contextSummary;
+        const event = contextEventsForSymbol(row.symbol)[0];
+        if (event) return `匹配到 ${event.source || "事件"}：${event.title}`;
+        return "暂未匹配到新闻、财报日期或分析师变化。";
+      }
+      function topEventForRow(row) {
+        return row.topEventTitle ? {
+          title: row.topEventTitle,
+          source: row.topEventSource,
+          url: row.topEventUrl,
+          when: row.topEventAt,
+          type: row.topEventType,
+        } : contextEventsForSymbol(row.symbol)[0];
+      }
+      function eventEvidenceHtml(row) {
+        const event = topEventForRow(row);
+        if (!event || !event.title) {
+          return `<div class="evidence-note">${escapeHtml(contextLine(row))}</div>`;
+        }
+        const title = escapeHtml(event.title);
+        const titleHtml = event.url
+          ? `<a class="event-link" href="${escapeHtml(event.url)}" target="_blank" rel="noopener noreferrer">${title}</a>`
+          : title;
+        const meta = [event.source, event.type || event.eventType, fmtDate(event.when || event.publishedAt || event.eventDate)].filter(Boolean).join(" / ");
+        return `<div>${titleHtml}</div><div class="evidence-note">${escapeHtml(meta)}</div>`;
+      }
+      function answerContextHtml(row) {
+        const status = contextStateText(row && row.contextState);
+        const event = topEventForRow(row || {});
+        if (event && event.title) {
+          const title = escapeHtml(event.title);
+          const titleHtml = event.url
+            ? `<a class="event-link" href="${escapeHtml(event.url)}" target="_blank" rel="noopener noreferrer">${title}</a>`
+            : title;
+          const prefix = event.source ? `${escapeHtml(event.source)}：` : "";
+          return `<span class="evidence-label">${escapeHtml(status)}</span><br>${prefix}${titleHtml}`;
+        }
+        return `<span class="evidence-label">${escapeHtml(status)}</span><br>${escapeHtml(contextLine(row))}`;
       }
       function portfolioRead(summary, assets, signals, color) {
         const active = signals.filter((row) => reviewColorForRow(row) !== "green");
@@ -1159,15 +1191,12 @@
         }
         return `${portfolioMove}。当前没有持仓达到需要关注的变化。`;
       }
-      function narrativeFocusLines(narrative) {
-        if (!narrative || !narrative.focus) return [];
-        return String(narrative.focus)
-          .split(/\n+/)
-          .map((line) => line.replace(/^[-•]\s*/, "").trim())
-          .filter(Boolean);
-      }
       function miniMetric(label, value, className) {
         return `<div class="mini-metric"><div class="mini-label">${escapeHtml(label)}</div><div class="mini-value ${className || ""}">${escapeHtml(value)}</div></div>`;
+      }
+      function evidenceMissingHtml(row) {
+        const text = row && row.evidenceMissing ? String(row.evidenceMissing).trim() : "";
+        return text ? `<div class="evidence-missing">${escapeHtml(text)}</div>` : "";
       }
       function renderAttentionStatus(summary, decision, assets, signals, narrative) {
         const model = attentionStatusModel(summary, decision, signals);
@@ -1190,6 +1219,7 @@
           return `<article class="answer-row ${escapeHtml(color)}">` +
             `<div class="answer-top"><div class="answer-symbol">${escapeHtml(asset.symbol)}</div>${statusChip(answer.color, answer.label)}</div>` +
             `<div class="answer-detail">${holdingEvidenceHtml(asset, signal)}</div>` +
+            `<div class="answer-context">${answerContextHtml(signal || asset)}</div>` +
             `<div class="mini-metrics">` +
             miniMetric("1D", fmtPct(asset.return1d), clsFor(asset.return1d)) +
             miniMetric("相对 SPY", fmtPct(asset.relativeReturn1d), clsFor(asset.relativeReturn1d)) +
@@ -1198,19 +1228,6 @@
             `</div>` +
             `</article>`;
         }).join("");
-
-        const top = topSignals(signals, 2).filter((row) => reviewColorForRow(row) !== "green");
-        const focusLines = narrativeFocusLines(narrative);
-        document.getElementById("focusHighlights").innerHTML = top.length ? top.map((row) => {
-          const asset = assets.find((item) => item.symbol === row.symbol) || {};
-          const color = reviewColorForRow(row);
-          const line = focusLines.shift() || holdingEvidence(asset, row);
-          return `<article class="focus-row">` +
-            `<div class="signal-top"><span class="signal-symbol">${escapeHtml(row.symbol)}</span>${statusChip(color, row.reviewLabel || colorLabel(color))}</div>` +
-            `<div class="focus-title">${colorFinancialMoves(line)}</div>` +
-            `<div class="focus-text">${colorFinancialMoves(row.technicalSummary || row.confirmationStatus || "")}</div>` +
-            `</article>`;
-        }).join("") : `<article class="focus-row"><div class="focus-title">${colorFinancialMoves(focusLines[0] || "当前没有持仓进入关注区。")}</div><div class="focus-text">继续按已接入的价格、成交量、趋势、波动率、组合影响和 SPY/QQQ 对比检查。</div></article>`;
       }
       function renderModeTabs() {
         document.getElementById("modeTabs").innerHTML = MODES.map((mode) =>
@@ -1426,7 +1443,7 @@
         }
         document.getElementById("signalDetails").innerHTML =
           `<div class="evidence-table-wrap"><table class="evidence-table">` +
-          `<thead><tr><th>持仓</th><th>状态</th><th>今日</th><th>相对 SPY</th><th>成交量</th><th>组合影响</th><th>证据</th></tr></thead><tbody>` +
+          `<thead><tr><th>持仓</th><th>状态</th><th>今日</th><th>相对 SPY</th><th>成交量</th><th>组合影响</th><th>事件证据</th><th>价格证据</th></tr></thead><tbody>` +
           detailRows.map((row) => {
           const anchor = row.deepLinkAnchor || `signal-${row.signalId}`;
           const color = reviewColorForRow(row);
@@ -1438,10 +1455,11 @@
             `<td class="${clsFor(asset.relativeReturn1d)}">${escapeHtml(fmtPct(asset.relativeReturn1d))}</td>` +
             `<td>${escapeHtml(fmtRatio(asset.volumeRatio20d))}</td>` +
             `<td>${escapeHtml(fmtImpact(row.portfolioImpactPct))}</td>` +
+            `<td>${eventEvidenceHtml(row)}<div class="evidence-note">${escapeHtml(contextStateText(row.contextState))}</div></td>` +
             `<td><div>${colorFinancialMoves(holdingEvidence(asset, row))}</div>` +
             techChips(row) +
             `<div class="evidence-note">${colorFinancialMoves(row.technicalSummary || row.confirmationStatus || "")}</div>` +
-            `<div class="evidence-missing">暂未接入：${escapeHtml(row.evidenceMissing || "新闻、财报、分析师预期或公司催化剂未接入本次判断。")}</div></td>` +
+            evidenceMissingHtml(row) + `</td>` +
             `</tr>`;
         }).join("") + `</tbody></table></div>`;
       }
@@ -1481,13 +1499,16 @@
           `</article>`
         ).join("");
       }
-      function renderCapability(capability) {
+      function renderCapability(capability, summary) {
         const fallback = {
           checkedItems: "价格波动、成交量、趋势、波动率、组合影响、SPY/QQQ 对比",
-          notCheckedItems: "新闻、财报、分析师预期、公司催化剂",
-          decisionLimit: "本版本只用已接入的数据判断是否需要关注；不会把未接入的新闻、预期或催化剂当成结论。",
+          notCheckedItems: "新闻、财报日期、分析师变化、公司催化剂",
+          decisionLimit: "本版本只用已接入的数据判断是否需要关注；不会把未接入或不可用的事件当成结论。",
         };
         const row = capability || fallback;
+        const universe = summary && summary.universe ? summary.universe : "这些持仓";
+        document.getElementById("playbookIntro").textContent =
+          `它监控 ${universe} 的 ${row.checkedItems || fallback.checkedItems}，用来判断今天有没有值得你查看的变化。`;
         document.getElementById("capabilityStatus").innerHTML =
           `<div class="detail-card">` +
           `<div class="capability-list">` +
@@ -1498,7 +1519,7 @@
           `</div>`;
       }
       async function init() {
-        const [summaryRaw, assetRaw, chartRaw, signalRaw, alertRaw, decisionRaw, narrativeRaw, capabilityRaw] = await Promise.all([
+        const [summaryRaw, assetRaw, chartRaw, signalRaw, alertRaw, decisionRaw, narrativeRaw, capabilityRaw, contextRaw] = await Promise.all([
           readAlfsJson(PATHS.summary),
           readAlfsJson(PATHS.assets),
           readAlfsJson(PATHS.chartSeries),
@@ -1507,11 +1528,13 @@
           readAlfsJson(PATHS.decision),
           readAlfsJson(PATHS.narrative).catch(() => []),
           readAlfsJson(PATHS.capability).catch(() => []),
+          readAlfsJson(PATHS.context).catch(() => []),
         ]);
         const summary = last(flattenRows(summaryRaw));
         allAssets = flattenRows(assetRaw);
         allChartRows = flattenRows(chartRaw);
         allSignals = flattenRows(signalRaw);
+        allContextEvents = flattenRows(contextRaw);
         const alerts = flattenRows(alertRaw);
         const decision = last(flattenRows(decisionRaw));
         const narrative = last(flattenRows(narrativeRaw));
@@ -1525,7 +1548,7 @@
         renderAttentionStatus(summary, decision, allAssets, allSignals, narrative);
         renderSignals(allSignals);
         renderAlerts(alerts, decision);
-        renderCapability(last(flattenRows(capabilityRaw)));
+        renderCapability(last(flattenRows(capabilityRaw)), summary);
         renderControlsAndChart();
         if (window.location.hash) {
           requestAnimationFrame(() => {

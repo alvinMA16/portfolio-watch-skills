@@ -17,6 +17,13 @@ const CONFIG = {
   redPortfolioImpactPct: 1.5,
   enableNarrativeAgent: true,
   narrativeModel: "gpt-5.5",
+  enableEventContext: true,
+  newsLookbackDays: 3,
+  analystLookbackDays: 30,
+  earningsLookbackDays: 14,
+  earningsForwardDays: 45,
+  contextEventLimit: 5,
+  contextBoostPoints: 8,
   initialSubscriptionConfirmation: true,
   portfolio: [
     { symbol: "REPLACE_SYMBOL", weight: 1 },
@@ -103,6 +110,14 @@ feed.def("watch", {
     str("reviewReason"),
     str("portfolioScope"),
     str("confirmationStatus"),
+    str("contextState"),
+    str("contextSummary"),
+    str("topEventType"),
+    str("topEventTitle"),
+    str("topEventSource"),
+    str("topEventUrl"),
+    str("topEventAt"),
+    num("contextEventCount"),
     str("severity"),
     str("state"),
   ]),
@@ -151,12 +166,40 @@ feed.def("signals", {
     str("confirmationStatus"),
     str("evidencePresent"),
     str("evidenceMissing"),
+    str("contextState"),
+    str("contextSummary"),
+    str("contextEvidence"),
+    str("topEventType"),
+    str("topEventTitle"),
+    str("topEventSource"),
+    str("topEventUrl"),
+    str("topEventAt"),
     num("portfolioImpactPct"),
     num("metricValue"),
     num("baseline"),
     str("asOf"),
     str("dedupKey"),
     str("deepLinkAnchor"),
+  ]),
+});
+
+feed.def("context", {
+  events: makeDoc("Event Context", "Sourced news, earnings, and analyst context for watch signals", [
+    str("eventId"),
+    str("symbol"),
+    str("eventType"),
+    str("catalystType"),
+    str("title"),
+    str("summary"),
+    str("source"),
+    str("url"),
+    str("publishedAt"),
+    str("eventDate"),
+    num("relevance"),
+    num("confidence"),
+    str("sourceStatus"),
+    str("impactDirection"),
+    str("asOf"),
   ]),
 });
 
@@ -267,6 +310,23 @@ async function arraysGet(path, params) {
     throw new Error("Arrays response missing data[] for " + path);
   }
   return body.data;
+}
+
+async function arraysTryGet(path, params) {
+  try {
+    const rows = await arraysGet(path, params);
+    return {
+      status: rows.length ? "ok" : "empty",
+      rows,
+      error: "",
+    };
+  } catch (error) {
+    return {
+      status: "unavailable",
+      rows: [],
+      error: String(error && error.message ? error.message : error).slice(0, 220),
+    };
+  }
 }
 
 function normalizePortfolio() {
@@ -392,6 +452,417 @@ function impactText(value, decimals) {
   return String(Math.abs(rounded)) + "%";
 }
 
+function truncateText(value, maxLength) {
+  const text = String(value || "").replace(/\s+/g, " ").trim();
+  if (!maxLength || text.length <= maxLength) return text;
+  return text.slice(0, Math.max(0, maxLength - 1)).trim() + "…";
+}
+
+function parseTimeMs(value) {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value > 100000000000 ? value : value * 1000;
+  }
+  if (!value) return null;
+  const parsed = Date.parse(String(value));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function isoTime(value) {
+  const ms = parseTimeMs(value);
+  return ms === null ? "" : new Date(ms).toISOString();
+}
+
+function dateOnly(value) {
+  if (!value) return "";
+  const text = String(value);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+  const ms = parseTimeMs(value);
+  return ms === null ? text.slice(0, 10) : new Date(ms).toISOString().slice(0, 10);
+}
+
+function eventSortTime(event) {
+  return parseTimeMs(event.publishedAt) || parseTimeMs(event.eventDate) || 0;
+}
+
+function eventAgeDays(event, nowMs) {
+  const ms = eventSortTime(event);
+  if (!ms) return 999;
+  return Math.abs(nowMs - ms) / 86400000;
+}
+
+function eventIdFor(symbol, type, title, timeValue) {
+  const seed = [symbol, type, title, String(timeValue || "")].join(":").toLowerCase();
+  return seed.replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 96);
+}
+
+function parseScore(value, fallback) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (value === null || value === undefined || value === "") return fallback;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function impactDirectionFromScore(value) {
+  const score = parseScore(value, 0);
+  if (score >= 0.15) return "positive";
+  if (score <= -0.15) return "negative";
+  return "unknown";
+}
+
+function topicLabel(topic) {
+  const key = String(topic || "").toUpperCase();
+  if (key === "EARNINGS") return "earnings";
+  if (key === "MERGERS_AND_ACQUISITIONS") return "mna";
+  if (key === "TECHNOLOGY") return "technology";
+  if (key === "FINANCIAL_MARKETS") return "market_news";
+  if (key.indexOf("ECONOMY") === 0) return "macro";
+  return key ? key.toLowerCase() : "market_news";
+}
+
+function topTopic(row) {
+  if (!Array.isArray(row.topics) || !row.topics.length) return "market_news";
+  const sorted = row.topics.slice().sort((a, b) => parseScore(b.relevance_score, 0) - parseScore(a.relevance_score, 0));
+  return topicLabel(sorted[0].topic);
+}
+
+function tickerRelevance(row, symbol) {
+  if (!Array.isArray(row.tickers)) return 0.5;
+  const ticker = row.tickers.find((item) => String(item.ticker || "").toUpperCase() === symbol);
+  if (!ticker) return 0.45;
+  return Math.max(0.45, parseScore(ticker.relevance_score, 0.55));
+}
+
+function tickerSentiment(row, symbol) {
+  if (!Array.isArray(row.tickers)) return impactDirectionFromScore(row.overall_sentiment_score);
+  const ticker = row.tickers.find((item) => String(item.ticker || "").toUpperCase() === symbol);
+  return ticker ? impactDirectionFromScore(ticker.ticker_sentiment_score) : impactDirectionFromScore(row.overall_sentiment_score);
+}
+
+function sourceQuality(source) {
+  const text = String(source || "").toLowerCase();
+  if (!text) return 0.55;
+  const high = ["reuters", "bloomberg", "wall street journal", "financial times", "associated press", "ap news", "cnbc", "business wire", "pr newswire"];
+  for (let i = 0; i < high.length; i += 1) {
+    if (text.indexOf(high[i]) >= 0) return 0.95;
+  }
+  const good = ["yahoo finance", "marketwatch", "barron", "fortune", "forbes", "techcrunch", "the verge", "wired", "nikkei", "seeking alpha"];
+  for (let i = 0; i < good.length; i += 1) {
+    if (text.indexOf(good[i]) >= 0) return 0.78;
+  }
+  return 0.58;
+}
+
+function eventSourceStatus(result) {
+  return result && result.status ? result.status : "unavailable";
+}
+
+function sourceSucceeded(status) {
+  return status === "ok" || status === "empty";
+}
+
+function contextSourceLabels(sourceStatus, wanted) {
+  const labels = [];
+  if (!wanted || wanted.news) {
+    if (sourceSucceeded(sourceStatus.news)) labels.push("近期新闻");
+  }
+  if (!wanted || wanted.earnings) {
+    if (sourceSucceeded(sourceStatus.earnings)) labels.push("财报日期");
+  }
+  if (!wanted || wanted.analyst) {
+    if (sourceSucceeded(sourceStatus.analyst)) labels.push("分析师变化");
+  }
+  return labels;
+}
+
+function contextUnavailableLabels(sourceStatus) {
+  const labels = [];
+  if (!sourceSucceeded(sourceStatus.news)) labels.push("近期新闻");
+  if (!sourceSucceeded(sourceStatus.earnings)) labels.push("财报日期");
+  if (!sourceSucceeded(sourceStatus.analyst)) labels.push("分析师变化");
+  return labels;
+}
+
+function dedupeEvents(events) {
+  const seen = {};
+  const out = [];
+  events.forEach((event) => {
+    const titleKey = String(event.title || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    const key = titleKey || String(event.url || event.eventId || "").toLowerCase();
+    if (!key || seen[key]) return;
+    seen[key] = true;
+    out.push(event);
+  });
+  return out;
+}
+
+function sortContextEvents(events, nowMs) {
+  return events.slice().sort((a, b) => {
+    const confidenceDiff = (b.confidence || 0) - (a.confidence || 0);
+    if (Math.abs(confidenceDiff) >= 0.04) return confidenceDiff;
+    return eventAgeDays(a, nowMs) - eventAgeDays(b, nowMs);
+  });
+}
+
+function buildContextState(events, sourceStatus) {
+  const succeeded = contextSourceLabels(sourceStatus).length;
+  if (!succeeded) return "context_unavailable";
+  if (!events.length) return "price_only";
+  const confirmable = events.filter((event) => event.eventType !== "earnings" || (event.confidence || 0) >= 0.75);
+  if (!confirmable.length) return "price_only";
+  const top = confirmable[0];
+  if (top.eventType === "earnings") return "near_earnings";
+  return "matched_event";
+}
+
+function contextStateLabel(contextState) {
+  if (contextState === "matched_event") return "有事件匹配";
+  if (contextState === "near_earnings") return "临近财报";
+  if (contextState === "context_unavailable") return "事件源不可用";
+  return "未匹配事件";
+}
+
+function buildContextSummary(symbol, context) {
+  const top = context.topEvent;
+  if (context.contextState === "context_unavailable") {
+    return "事件源本次不可用；这条判断只看价格、成交量和组合影响。";
+  }
+  if (!top || context.contextState === "price_only") {
+    const earnings = context.events.find((event) => event.eventType === "earnings");
+    if (earnings) {
+      return "下一次财报在 " + (earnings.eventDate || earnings.publishedAt || "--") + "；本次没有匹配到新闻或分析师变化，价格判断仍是主线。";
+    }
+    return "已检查新闻、财报日期和分析师变化，暂未匹配到事件；这条判断仍是价格驱动。";
+  }
+  if (top.eventType === "earnings") {
+    return symbol + " 临近财报：" + (top.eventDate || top.publishedAt || "--") + "；这是日程背景，不等于业绩判断。";
+  }
+  return "匹配到" + (top.source ? " " + top.source : "") + "：" + truncateText(top.title, 86);
+}
+
+function buildContextEvidence(context) {
+  const top = context.topEvent;
+  if (!top) return context.contextSummary || "未匹配到事件。";
+  const when = top.publishedAt || top.eventDate || "";
+  const source = top.source ? top.source + " / " : "";
+  return source + truncateText(top.title, 110) + (when ? " / " + dateOnly(when) : "");
+}
+
+function buildEvidenceMissing(context) {
+  if (!context) {
+    return "";
+  }
+  const missing = contextUnavailableLabels(context.sourceStatus);
+  if (missing.length) {
+    return "本次没有拿到：" + missing.join("、") + "；这条判断不会使用这些信息。";
+  }
+  return "";
+}
+
+function eventContextBoost(context) {
+  if (!context || context.contextState === "context_unavailable" || context.contextState === "price_only") return 0;
+  if (context.contextState === "near_earnings") return Math.round(CONFIG.contextBoostPoints * 0.5);
+  return CONFIG.contextBoostPoints;
+}
+
+async function loadNewsEvents(symbol, nowSec, nowMs) {
+  const result = await arraysTryGet("/api/v1/stocks/market-news", {
+    symbol,
+    start_time: nowSec - CONFIG.newsLookbackDays * 86400,
+    end_time: nowSec,
+    limit: CONFIG.contextEventLimit,
+    sort_by_type: "RELEVANCE_SCORE",
+    sort_by: "DESC",
+  });
+  const events = result.rows.map((row) => {
+    const publishedMs = parseTimeMs(row.publish_time) || parseTimeMs(row.time_published) || nowMs;
+    const relevance = tickerRelevance(row, symbol);
+    const title = truncateText(row.title || "Market news", 160);
+    const source = row.source || row.source_domain || "Market news";
+    const confidence = Math.max(0.35, Math.min(0.95, relevance * sourceQuality(source)));
+    return {
+      date: publishedMs,
+      eventId: eventIdFor(symbol, "news", title, publishedMs),
+      symbol,
+      eventType: "news",
+      catalystType: topTopic(row),
+      title,
+      summary: truncateText(row.summary || "", 260),
+      source,
+      url: row.url || "",
+      publishedAt: isoTime(publishedMs),
+      eventDate: dateOnly(publishedMs),
+      relevance: round(relevance, 3),
+      confidence: round(confidence, 3),
+      sourceStatus: "ok",
+      impactDirection: tickerSentiment(row, symbol),
+      asOf: new Date(nowMs).toISOString(),
+    };
+  });
+  return { events, status: eventSourceStatus(result), error: result.error };
+}
+
+async function loadEarningsEvents(symbol, nowSec, nowMs) {
+  const result = await arraysTryGet("/api/v1/stocks/earnings-calendar", {
+    symbol,
+    start_time: nowSec - CONFIG.earningsLookbackDays * 86400,
+    end_time: nowSec + CONFIG.earningsForwardDays * 86400,
+  });
+  const events = result.rows.map((row) => {
+    const dateText = row.date || row.fiscal_date_ending || "";
+    const eventMs = parseTimeMs(dateText) || nowMs;
+    const days = (eventMs - nowMs) / 86400000;
+    const near = Math.abs(days) <= 7;
+    const when = days >= 0 ? "Upcoming" : "Recent";
+    const title = symbol + " earnings " + dateText + (row.time ? " " + row.time : "");
+    return {
+      date: eventMs,
+      eventId: eventIdFor(symbol, "earnings", title, eventMs),
+      symbol,
+      eventType: "earnings",
+      catalystType: "earnings_date",
+      title,
+      summary: when + " earnings date for fiscal period ending " + (row.fiscal_date_ending || "--") + ".",
+      source: "Arrays earnings calendar",
+      url: "",
+      publishedAt: "",
+      eventDate: dateText,
+      relevance: near ? 0.8 : 0.55,
+      confidence: near ? 0.82 : 0.62,
+      sourceStatus: "ok",
+      impactDirection: "unknown",
+      asOf: new Date(nowMs).toISOString(),
+    };
+  });
+  return { events, status: eventSourceStatus(result), error: result.error };
+}
+
+async function loadAnalystEvents(symbol, nowSec, nowMs) {
+  const events = [];
+  const targetResult = await arraysTryGet("/api/v1/stocks/company/price-target-news", {
+    symbol,
+    start_time: nowSec - CONFIG.analystLookbackDays * 86400,
+    end_time: nowSec,
+    limit: CONFIG.contextEventLimit,
+  });
+  targetResult.rows.forEach((row) => {
+    const publishedMs = parseTimeMs(row.observed_at) || parseTimeMs(row.publish_time) || nowMs;
+    const title = truncateText(row.news_title || (row.analyst_company ? row.analyst_company + " price target update" : "Analyst price target update"), 160);
+    events.push({
+      date: publishedMs,
+      eventId: eventIdFor(symbol, "analyst-target", title, publishedMs),
+      symbol,
+      eventType: "analyst",
+      catalystType: "analyst_target",
+      title,
+      summary: truncateText((row.analyst_company || "Analyst") + (row.price_target ? " target " + String(row.price_target) : "") + (row.price_when_posted ? " vs price " + String(row.price_when_posted) : ""), 220),
+      source: row.news_publisher || row.analyst_company || "Analyst news",
+      url: row.news_url || "",
+      publishedAt: isoTime(publishedMs),
+      eventDate: dateOnly(publishedMs),
+      relevance: 0.7,
+      confidence: 0.72,
+      sourceStatus: "ok",
+      impactDirection: "unknown",
+      asOf: new Date(nowMs).toISOString(),
+    });
+  });
+
+  const estimateResult = await arraysTryGet("/api/v1/stocks/estimates-guidance", {
+    symbol,
+    metrics: "EPS,SALES",
+    type: "estimate",
+    period_type: "quarterly",
+    start_time: nowSec - CONFIG.analystLookbackDays * 86400,
+    end_time: nowSec,
+    limit: 100,
+  });
+  const byMetric = {};
+  estimateResult.rows.forEach((row) => {
+    const key = String(row.metric || "") + ":" + String(row.fiscal_year || "") + ":" + String(row.fiscal_period || row.fiscal_quarter || "");
+    const up = typeof row.up === "number" ? row.up : 0;
+    const down = typeof row.down === "number" ? row.down : 0;
+    if (!key || (!up && !down)) return;
+    const existing = byMetric[key];
+    const count = typeof row.estimate_count === "number" ? row.estimate_count : 0;
+    if (!existing || count > (existing.estimate_count || 0)) byMetric[key] = row;
+  });
+  Object.keys(byMetric).slice(0, 3).forEach((key) => {
+    const row = byMetric[key];
+    const publishedMs = parseTimeMs(row.observed_at) || parseTimeMs(row.estimate_date) || nowMs;
+    const up = typeof row.up === "number" ? row.up : 0;
+    const down = typeof row.down === "number" ? row.down : 0;
+    const title = symbol + " " + (row.metric || "estimate") + " consensus changed";
+    events.push({
+      date: publishedMs,
+      eventId: eventIdFor(symbol, "estimate", title + key, publishedMs),
+      symbol,
+      eventType: "analyst",
+      catalystType: "estimate_revision",
+      title,
+      summary: (row.metric || "Estimate") + " revisions: " + String(up) + " up, " + String(down) + " down; estimate count " + String(row.estimate_count || "--") + ".",
+      source: "Arrays estimates guidance",
+      url: "",
+      publishedAt: isoTime(publishedMs),
+      eventDate: dateOnly(row.estimate_date || row.observed_at || publishedMs),
+      relevance: 0.72,
+      confidence: round(Math.min(0.88, 0.55 + Math.min(0.25, (row.estimate_count || 0) / 80)), 3),
+      sourceStatus: "ok",
+      impactDirection: up > down ? "positive" : down > up ? "negative" : "mixed",
+      asOf: new Date(nowMs).toISOString(),
+    });
+  });
+
+  const status = sourceSucceeded(targetResult.status) || sourceSucceeded(estimateResult.status)
+    ? (events.length ? "ok" : "empty")
+    : "unavailable";
+  return {
+    events,
+    status,
+    error: [targetResult.error, estimateResult.error].filter(Boolean).join(" | ").slice(0, 220),
+  };
+}
+
+async function loadSymbolContext(symbol, nowSec, nowMs) {
+  if (!CONFIG.enableEventContext) {
+    return {
+      events: [],
+      topEvent: null,
+      contextState: "context_unavailable",
+      contextSummary: "事件上下文未启用；这条判断只看价格、成交量和组合影响。",
+      contextEvidence: "事件上下文未启用。",
+      sourceStatus: { news: "disabled", earnings: "disabled", analyst: "disabled" },
+      sourceErrors: {},
+    };
+  }
+  const news = await loadNewsEvents(symbol, nowSec, nowMs);
+  const earnings = await loadEarningsEvents(symbol, nowSec, nowMs);
+  const analyst = await loadAnalystEvents(symbol, nowSec, nowMs);
+  const sourceStatus = {
+    news: news.status,
+    earnings: earnings.status,
+    analyst: analyst.status,
+  };
+  const events = sortContextEvents(dedupeEvents(news.events.concat(earnings.events).concat(analyst.events)), nowMs)
+    .slice(0, CONFIG.contextEventLimit);
+  const topEvent = events.length ? events[0] : null;
+  const context = {
+    events,
+    topEvent,
+    contextState: buildContextState(events, sourceStatus),
+    contextSummary: "",
+    contextEvidence: "",
+    sourceStatus,
+    sourceErrors: {
+      news: news.error || "",
+      earnings: earnings.error || "",
+      analyst: analyst.error || "",
+    },
+  };
+  context.contextSummary = buildContextSummary(symbol, context);
+  context.contextEvidence = buildContextEvidence(context);
+  return context;
+}
+
 function sensitivityThresholds() {
   if (CONFIG.sensitivity === "aggressive") return { high: 60, medium: 40 };
   if (CONFIG.sensitivity === "conservative") return { high: 80, medium: 55 };
@@ -494,17 +965,44 @@ function stateLabel(value) {
   return map[value] || value || "--";
 }
 
-function reviewColorFor(scored) {
-  if (scored.severity === "high" && scored.portfolioImpactPct >= CONFIG.redPortfolioImpactPct) return "red";
+function applyContextBoost(scored, context) {
+  const boost = eventContextBoost(context);
+  if (!boost) return scored;
+  const score = Math.min(100, scored.score + boost);
+  const severity = severityFor(score);
+  let state = "normal";
+  if (severity === "high") state = "alert";
+  else if (severity === "medium") state = "watch";
+  return Object.assign({}, scored, {
+    score,
+    severity,
+    state,
+    contextBoost: boost,
+  });
+}
+
+function reviewColorFor(scored, context) {
+  const contextConfirmed = context && (context.contextState === "matched_event" || context.contextState === "near_earnings");
+  const exceptionalImpact = scored.portfolioImpactPct >= CONFIG.redPortfolioImpactPct * 1.5;
+  if (scored.severity === "high" && scored.portfolioImpactPct >= CONFIG.redPortfolioImpactPct && (contextConfirmed || exceptionalImpact)) return "red";
   if (scored.severity === "high" || scored.severity === "medium") return "yellow";
   return "green";
 }
 
-function confirmationStatus(scored) {
-  if (scored.volumeState === "volume spike" || scored.volumeState === "volume elevated") {
-    return "成交量有放大，但仍未接入新闻、财报或预期变化确认。";
+function confirmationStatus(scored, context) {
+  if (context && context.contextState === "matched_event") {
+    return context.contextSummary;
   }
-  return "成交量没有明显放大，且本版本未接入新闻、财报或预期变化确认。";
+  if (context && context.contextState === "near_earnings") {
+    return context.contextSummary;
+  }
+  if (context && context.contextState === "price_only") {
+    return "本次没有匹配到新闻、财报日期或分析师变化；这条判断主要来自价格、成交量和组合影响。";
+  }
+  if (scored.volumeState === "volume spike" || scored.volumeState === "volume elevated") {
+    return "成交量有放大，但事件源本次不可用，无法确认是否有新闻、财报或预期变化。";
+  }
+  return "事件源本次不可用；这条判断只看价格、成交量和组合影响。";
 }
 
 function buildEvidenceLine(symbol, returns, scored, technicalInputs, context) {
@@ -519,13 +1017,14 @@ function buildEvidenceLine(symbol, returns, scored, technicalInputs, context) {
 
 function buildReviewReason(symbol, color, returns, scored, technicalInputs, context) {
   const evidenceLine = buildEvidenceLine(symbol, returns, scored, technicalInputs, context);
+  const eventLine = context && context.contextSummary ? " " + context.contextSummary : "";
   if (color === "red") {
-    return evidenceLine + " 这已经达到立即关注级别。";
+    return evidenceLine + eventLine + " 这已经达到立即关注级别。";
   }
   if (color === "yellow") {
-    return evidenceLine + " 主要变化来自" + driverLabel(scored.primaryTechnicalDriver) + "，值得留意，但还不到立即提醒。";
+    return evidenceLine + eventLine + " 主要变化来自" + driverLabel(scored.primaryTechnicalDriver) + "，值得留意，但还不到立即提醒。";
   }
-  return evidenceLine + " 当前没有达到需要关注的变化。";
+  return evidenceLine + eventLine + " 当前没有达到需要关注的变化。";
 }
 
 function buildEvidencePresent(returns, scored, technicalInputs) {
@@ -535,10 +1034,6 @@ function buildEvidencePresent(returns, scored, technicalInputs) {
     "成交量 " + ratioText(technicalInputs.volumeRatio20d, 2) + " 20日中位数",
     "波动 " + ratioText(technicalInputs.moveVsNormal, 2) + " 平常水平",
   ].join("；");
-}
-
-function buildEvidenceMissing() {
-  return "本版本未接入新闻、财报、分析师预期或公司催化剂，所以不会把单纯技术异动说成持仓逻辑变化。";
 }
 
 const VOICE_BLOCK = `VOICE — strict. The reader is a finance professional. Sound like a sharp
@@ -627,8 +1122,11 @@ function parseAgentJson(text) {
   }
 }
 
-function narrativeLimitations() {
-  return "这段只基于已接入的价格、成交量、趋势、波动率、组合影响和 SPY/QQQ 对比；未接入新闻、财报或分析师预期。";
+function narrativeLimitations(capability) {
+  if (capability && capability.checkedItems) {
+    return "这段只基于本次已接入数据整理：" + capability.checkedItems + "。";
+  }
+  return "这段只基于已接入的价格、成交量、趋势、波动率、组合影响和 SPY/QQQ 对比整理。";
 }
 
 function cleanNarrativeText(value) {
@@ -638,7 +1136,7 @@ function cleanNarrativeText(value) {
     .replace(/打开看/g, "查看");
 }
 
-function narrativeFallback(summary, assets, signals, nowMs, latestAsOf, source) {
+function narrativeFallback(summary, assets, signals, capability, nowMs, latestAsOf, source) {
   const active = signals.slice().filter((signal) => signal.reviewColor !== "green").sort((a, b) => {
     const priorityDiff = reviewPriority(b.reviewColor) - reviewPriority(a.reviewColor);
     if (priorityDiff) return priorityDiff;
@@ -664,7 +1162,7 @@ function narrativeFallback(summary, assets, signals, nowMs, latestAsOf, source) 
     date: nowMs,
     summary: cleanNarrativeText(summaryText),
     focus: cleanNarrativeText(focus.join("\n")),
-    limitations: narrativeLimitations(),
+    limitations: narrativeLimitations(capability),
     source: source || "deterministic_feed_summary",
     modelStatus: "fallback",
     asOf: latestAsOf,
@@ -690,6 +1188,10 @@ function narrativeInput(summary, assets, signals, capability) {
       volumeRatio20d: asset.volumeRatio20d,
       portfolioImpactPct: asset.portfolioImpactPct,
       reviewReason: asset.reviewReason,
+      contextState: asset.contextState,
+      contextSummary: asset.contextSummary,
+      topEventTitle: asset.topEventTitle,
+      topEventSource: asset.topEventSource,
     })),
     topSignals: signals.slice().sort((a, b) => {
       const priorityDiff = reviewPriority(b.reviewColor) - reviewPriority(a.reviewColor);
@@ -703,6 +1205,12 @@ function narrativeInput(summary, assets, signals, capability) {
       evidencePresent: signal.evidencePresent,
       evidenceMissing: signal.evidenceMissing,
       confirmationStatus: signal.confirmationStatus,
+      contextState: signal.contextState,
+      contextSummary: signal.contextSummary,
+      contextEvidence: signal.contextEvidence,
+      topEventType: signal.topEventType,
+      topEventTitle: signal.topEventTitle,
+      topEventSource: signal.topEventSource,
       portfolioImpactPct: signal.portfolioImpactPct,
     })),
     capability: {
@@ -714,7 +1222,7 @@ function narrativeInput(summary, assets, signals, capability) {
 }
 
 async function buildNarrativeBrief(summary, assets, signals, capability, nowMs, latestAsOf) {
-  const fallback = narrativeFallback(summary, assets, signals, nowMs, latestAsOf);
+  const fallback = narrativeFallback(summary, assets, signals, capability, nowMs, latestAsOf);
   if (!CONFIG.enableNarrativeAgent) return fallback;
   try {
     const { Agent, getModel } = require("@alva/pi");
@@ -723,7 +1231,8 @@ async function buildNarrativeBrief(summary, assets, signals, capability, nowMs, 
       initialState: {
         systemPrompt: VOICE_BLOCK + "\n\n" +
           "你是 Portfolio Watch 的中文摘要整理器。只基于用户提供的 JSON 数据写页面文案。" +
-          "不要编造新闻、财报、分析师预期、公司催化剂、持仓逻辑变化或交易建议。" +
+          "可以提到 JSON 里已有的新闻、财报日期、分析师变化或事件上下文；不要编造 JSON 里没有的事件。" +
+          "不要编造公司催化剂、持仓逻辑变化或交易建议。" +
           "如果证据只有价格、成交量、趋势、波动率和组合影响，就直接这样说。" +
           "portfolioImpactPct 是绝对影响幅度，不要加正负号；涨跌方向只看 return1d。" +
           "不要使用“关注线”“主要要看”“打开看”这类生硬说法。" +
@@ -751,7 +1260,7 @@ async function buildNarrativeBrief(summary, assets, signals, capability, nowMs, 
       date: nowMs,
       summary: cleanNarrativeText(parsed.summary).slice(0, 260),
       focus: cleanNarrativeText(focus).slice(0, 900),
-      limitations: String(parsed.limitations || narrativeLimitations()).slice(0, 260),
+      limitations: String(parsed.limitations || narrativeLimitations(capability)).slice(0, 260),
       source: "model_over_feed_data",
       modelStatus: "generated",
       asOf: latestAsOf,
@@ -859,7 +1368,7 @@ async function buildBars(symbol, startSec, endSec) {
   return bars;
 }
 
-async function buildSymbol(row, benchmarkReturns, startSec, endSec, nowMs, maxWeight) {
+async function buildSymbol(row, benchmarkReturns, startSec, endSec, nowMs, nowSec, maxWeight) {
   const bars = await buildBars(row.symbol, startSec, endSec);
   const detailRows = await arraysGet("/api/v1/stocks/company/detail", { symbol: row.symbol });
   if (!detailRows.length) throw new Error(row.symbol + " company detail empty");
@@ -891,7 +1400,7 @@ async function buildSymbol(row, benchmarkReturns, startSec, endSec, nowMs, maxWe
   const relativeReturn1d = returns.return1d === null || benchmarkReturn1d === null ? null : returns.return1d - benchmarkReturn1d;
   const ma20DistancePct = pctChange(latest.price_close, metrics.ma20);
   const ma60DistancePct = pctChange(latest.price_close, metrics.ma60);
-  const scored = scoreAsset({
+  let scored = scoreAsset({
     returns,
     metrics,
     medianAbsReturn60d,
@@ -905,6 +1414,8 @@ async function buildSymbol(row, benchmarkReturns, startSec, endSec, nowMs, maxWe
     weight: row.weight,
     weightImportance: row.weight / maxWeight,
   });
+  const eventContext = await loadSymbolContext(row.symbol, nowSec, nowMs);
+  scored = applyContextBoost(scored, eventContext);
   const firstClose = bars[0].price_close;
   const asOf = latest.time_period_end || new Date(latest.time_close * 1000).toISOString();
   const technicalInputs = {
@@ -918,13 +1429,14 @@ async function buildSymbol(row, benchmarkReturns, startSec, endSec, nowMs, maxWe
     benchmark: CONFIG.primaryBenchmark,
     relativeReturn1d,
   };
-  const reviewColor = reviewColorFor(scored);
+  const reviewColor = reviewColorFor(scored, eventContext);
   const reviewLabel = statusLabel(reviewColor);
-  const reviewReason = buildReviewReason(row.symbol, reviewColor, returns, scored, technicalInputs, evidenceContext);
-  const confirmation = confirmationStatus(scored);
+  const reviewReason = buildReviewReason(row.symbol, reviewColor, returns, scored, technicalInputs, Object.assign({}, evidenceContext, eventContext));
+  const confirmation = confirmationStatus(scored, eventContext);
   const evidencePresent = buildEvidencePresent(returns, scored, technicalInputs);
-  const evidenceMissing = buildEvidenceMissing();
+  const evidenceMissing = buildEvidenceMissing(eventContext);
   const technicalSummary = buildTechnicalSummary(row.symbol, returns, scored, technicalInputs);
+  const topEvent = eventContext.topEvent || {};
 
   const signalId = row.symbol.toLowerCase() + "-" + scored.trigger.type + "-" + String(latest.time_close || nowMs);
   const reason = scored.severity === "low"
@@ -976,6 +1488,14 @@ async function buildSymbol(row, benchmarkReturns, startSec, endSec, nowMs, maxWe
     reviewReason,
     portfolioScope: "单只持仓变化",
     confirmationStatus: confirmation,
+    contextState: eventContext.contextState,
+    contextSummary: eventContext.contextSummary,
+    topEventType: topEvent.eventType || "",
+    topEventTitle: topEvent.title || "",
+    topEventSource: topEvent.source || "",
+    topEventUrl: topEvent.url || "",
+    topEventAt: topEvent.publishedAt || topEvent.eventDate || "",
+    contextEventCount: eventContext.events.length,
     severity: scored.severity,
     state: scored.state,
   };
@@ -1003,6 +1523,14 @@ async function buildSymbol(row, benchmarkReturns, startSec, endSec, nowMs, maxWe
     confirmationStatus: confirmation,
     evidencePresent,
     evidenceMissing,
+    contextState: eventContext.contextState,
+    contextSummary: eventContext.contextSummary,
+    contextEvidence: eventContext.contextEvidence,
+    topEventType: topEvent.eventType || "",
+    topEventTitle: topEvent.title || "",
+    topEventSource: topEvent.source || "",
+    topEventUrl: topEvent.url || "",
+    topEventAt: topEvent.publishedAt || topEvent.eventDate || "",
     portfolioImpactPct: round(scored.portfolioImpactPct, 2),
     metricValue: round(scored.trigger.value, 2),
     baseline: round(scored.trigger.baseline, 2),
@@ -1017,6 +1545,9 @@ async function buildSymbol(row, benchmarkReturns, startSec, endSec, nowMs, maxWe
     bars,
     assetRecord,
     signalRecord,
+    contextRecords: eventContext.events,
+    contextSourceStatus: eventContext.sourceStatus,
+    contextSourceErrors: eventContext.sourceErrors,
     priceRecords: bars.map((bar) => ({
       date: bar.time_close * 1000,
       symbol: row.symbol,
@@ -1444,6 +1975,33 @@ function buildNotify(alertRows, decision, setupConfirmation) {
   };
 }
 
+function aggregateSourceStatus(symbolData, sourceKey) {
+  const statuses = symbolData.map((item) => item.contextSourceStatus && item.contextSourceStatus[sourceKey]).filter(Boolean);
+  if (!statuses.length) return "unavailable";
+  if (statuses.some((status) => sourceSucceeded(status))) return "checked";
+  return "unavailable";
+}
+
+function buildCapabilityRecord(symbolData, nowMs) {
+  const checked = ["价格波动", "成交量", "趋势", "波动率", "组合影响", "SPY/QQQ 对比"];
+  const notChecked = ["你的个人持仓假设", "期权异动", "社交平台信号"];
+  const sourceMap = [
+    { key: "news", label: "近期新闻" },
+    { key: "earnings", label: "财报日期" },
+    { key: "analyst", label: "分析师变化" },
+  ];
+  sourceMap.forEach((source) => {
+    if (aggregateSourceStatus(symbolData, source.key) === "checked") checked.push(source.label);
+    else notChecked.push(source.label);
+  });
+  return {
+    date: nowMs,
+    checkedItems: checked.join("、"),
+    notCheckedItems: notChecked.join("、"),
+    decisionLimit: "本版本只使用已接入且本次成功返回的数据；没有匹配到事件时，不会把价格异动说成新闻、财报、预期或催化剂变化。",
+  };
+}
+
 (async () => {
   assertConfigured();
   const nowMs = Date.now();
@@ -1460,7 +2018,7 @@ function buildNotify(alertRows, decision, setupConfirmation) {
   const missing = [];
   for (let i = 0; i < portfolio.length; i += 1) {
     try {
-      symbolData.push(await buildSymbol(portfolio[i], primaryBenchmark ? primaryBenchmark.returns : null, startSec, endSec, nowMs, maxWeight));
+      symbolData.push(await buildSymbol(portfolio[i], primaryBenchmark ? primaryBenchmark.returns : null, startSec, endSec, nowMs, nowSec, maxWeight));
     } catch (error) {
       missing.push(portfolio[i].symbol + ": " + error.message);
     }
@@ -1471,6 +2029,8 @@ function buildNotify(alertRows, decision, setupConfirmation) {
 
   const assetRecords = symbolData.map((item) => item.assetRecord);
   const signalRecords = symbolData.map((item) => item.signalRecord).sort((a, b) => b.score - a.score);
+  const contextRecords = [];
+  symbolData.forEach((item) => (item.contextRecords || []).forEach((record) => contextRecords.push(record)));
   const priceRecords = [];
   symbolData.forEach((item) => item.priceRecords.forEach((record) => priceRecords.push(record)));
   const equityRecords = buildEquity(symbolData, primaryBenchmark ? primaryBenchmark.priceRecords : null);
@@ -1524,12 +2084,7 @@ function buildNotify(alertRows, decision, setupConfirmation) {
     missingSymbols: missing.join("; "),
     missingBenchmarks: benchmarkSeries.missing.join("; "),
   };
-  const capabilityRecord = {
-    date: nowMs,
-    checkedItems: "价格波动、成交量、趋势、波动率、组合影响、SPY/QQQ 对比",
-    notCheckedItems: "新闻、财报、分析师预期、公司催化剂",
-    decisionLimit: "本版本只用已接入的数据判断是否需要关注；不会把未接入的新闻、预期或催化剂当成结论。",
-  };
+  const capabilityRecord = buildCapabilityRecord(symbolData, nowMs);
   const narrativeRecord = await buildNarrativeBrief(summaryRecord, assetRecords, signalRecords, capabilityRecord, nowMs, latestAsOf);
 
   let notifyState = "quiet";
@@ -1556,6 +2111,9 @@ function buildNotify(alertRows, decision, setupConfirmation) {
     await ctx.self.ts("history", "prices").append(priceRecords);
     await ctx.self.ts("chart", "series").append(chartRecords);
     await ctx.self.ts("signals", "events").append(signalRecords);
+    if (contextRecords.length) {
+      await ctx.self.ts("context", "events").append(contextRecords);
+    }
     await ctx.self.ts("alerts", "events").append(alertRows);
     await ctx.self.ts("alerts", "decision").append([decision]);
     await ctx.self.ts("narrative", "brief").append([narrativeRecord]);

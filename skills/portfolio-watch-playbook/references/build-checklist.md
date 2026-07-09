@@ -27,7 +27,10 @@ separate local checkout of the official Alva Skill.
   `alva-platform/content-legitimacy.md`.
 - Discover live endpoint docs with `alva data-skills list`, then `summary`,
   then `endpoint`.
-- For US equity v1, expect stock kline, company detail, and market metrics.
+- For US equity v1, expect stock kline, company detail, market metrics,
+  earnings calendar, market news, and analyst estimate/target endpoint docs.
+  News and analyst endpoints may require Pro; if unavailable, the generated
+  Playbook must mark them unavailable for that run.
 - Treat more than 20% missing symbols as a blocker. Do not fabricate rows.
 
 ## 4. Feed / Automation
@@ -36,8 +39,8 @@ separate local checkout of the official Alva Skill.
   `feed-lifecycle.md`, and `deployment.md`.
 - Build outputs from `data-contract.md`: `portfolio/summary`,
   `portfolio/equity`, `watch/assets`, `history/prices`, `chart/series`,
-  `signals/events`, `alerts/events`, `alerts/decision`, `narrative/brief`,
-  `capability/status`, and `notify/message`.
+  `signals/events`, `context/events`, `alerts/events`, `alerts/decision`,
+  `narrative/brief`, `capability/status`, and `notify/message`.
 - Run the exact ALFS script with `alva run --entry-path ...` after every
   meaningful change. Do not pass `initialConfirmation` during pre-subscription
   test runs; that mode is reserved for the first subscribed automation run.
@@ -60,17 +63,25 @@ separate local checkout of the official Alva Skill.
   below it with usable Portfolio / Tickers / Compare controls and SPY / QQQ
   benchmark toggles when data exists.
 - Do not render a separate holdings-status table that repeats the first-screen
-  holding cards.
-- Do not render a separate "today queue" below the chart that repeats the
-  first-screen worth-reading changes.
+  holding cards. Each holding card should show whether the move has matching
+  event context or is still price-driven. If matched news has a URL, render the
+  source/title as a clickable link in the holding card.
+- Do not render a separate `值得留意的变化`, "today queue", or similar section
+  when it repeats the first-screen holding cards.
 - Render `证据明细` as a table with row anchors, not a repeated card grid.
+  Include an event-evidence column sourced from `signals/events` and
+  `context/events`.
+- Evidence-missing copy should appear only when a source that normally
+  participates in the decision was unavailable for the current run. Do not show
+  generic caveats under every row.
 - Signed return and relative-return values must be green when positive and red
   when negative everywhere they appear.
 - Use one status-chip treatment for `无需关注`, `留意一下`, and `请立即关注` everywhere
   those labels appear.
 - The page must not claim news, earnings, analyst revisions, catalysts, or
   thesis drivers are monitored unless the feed actually writes those sourced
-  outputs. Show unwired sources in `当前在看什么`.
+  outputs and the current run succeeded. Show unavailable sources in
+  `当前在看什么`.
 - HTML must use `AlvaToolkit.AlvaClient` for runtime reads.
 - Write HTML and README to `~/playbooks/<name>/`.
 - Draft with `alva release playbook-draft`.
@@ -88,6 +99,8 @@ separate local checkout of the official Alva Skill.
   notification decision.
 - Confirm `capability/status/@last/1` is fresh and states what is wired versus
   not wired.
+- Confirm `context/events/@last/20` is fresh when event context is enabled, or
+  that `capability/status` clearly states why event context was unavailable.
 - Subscribe with:
   - `alva subscriptions subscribe-playbook --username <owner> --name <playbook>`
   - or `alva subscriptions subscribe-feed --username <owner> --name <feed>`

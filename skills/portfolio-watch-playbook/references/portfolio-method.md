@@ -22,7 +22,7 @@ internal alert mechanics.
 
 ## Attention Model
 
-Rank signals by five concepts:
+Rank signals by six concepts:
 
 1. **Abnormality** - Is the move unusual for this asset relative to its own
    recent behavior, benchmark, sector, or peer context?
@@ -30,19 +30,22 @@ Rank signals by five concepts:
    exposure? Portfolio impact must dominate raw price move size.
 3. **Explainability** - Can the Playbook state a clear reason and evidence path
    for why this deserves attention?
-4. **Freshness** - Is the signal based on current data for the configured
+4. **Event context** - Is there sourced news, earnings, analyst, or catalyst
+   context that helps explain the move?
+5. **Freshness** - Is the signal based on current data for the configured
    cadence?
-5. **Novelty** - Has the user already been alerted to the same issue recently?
+6. **Novelty** - Has the user already been alerted to the same issue recently?
 
 Use exact scoring weights as implementation details. The required ranking
 principle is:
 
-`attention = abnormality + portfolio relevance + explainability + freshness - repeated noise`
+`attention = abnormality + portfolio relevance + explainability + sourced context + freshness - repeated noise`
 
-Portfolio relevance and abnormality must dominate ranking. News, options,
-social, macro, and analyst catalysts may boost severity only when sourced. If
-they are not wired, explicitly say they are not checked; do not imply a thesis
-or catalyst change from price action alone.
+Portfolio relevance and abnormality must dominate ranking. News, earnings,
+analyst changes, options, social, macro, and company catalysts may boost
+severity only when sourced. If they are not wired or the current run cannot
+fetch them, explicitly say they are not checked; do not imply a thesis or
+catalyst change from price action alone.
 
 ## Watched Dimensions
 
@@ -60,9 +63,16 @@ Required v1 dimensions:
 - Context: company name, sector, industry, market cap, trailing P/E when
   available.
 
+Default event-context dimensions when coverage is verified:
+
+- Recent symbol-filtered market news.
+- Recent and upcoming earnings calendar dates.
+- Recent analyst price-target news and consensus estimate changes.
+
 Optional dimensions when coverage is verified:
 
-- News / filings / earnings / ratings as catalysts.
+- SEC earnings releases, earnings transcripts, filings, and deeper guidance
+  parsing.
 - Options activity as a booster.
 - Twitter/X or social signals as a booster.
 - Macro data as portfolio-level context.
@@ -74,9 +84,11 @@ backward compatibility, but the Playbook must translate it before showing it to
 users:
 
 - **Red / 请立即关注**: material portfolio impact, abnormal move, fresh data,
-  clear reason, and no recent duplicate. Eligible for push.
-- **Yellow / 留意一下**: noteworthy but not urgent. Show in Playbook, do not
-  push.
+  clear reason, and either sourced event confirmation or an unusually large
+  portfolio impact. Eligible for push.
+- **Yellow / 留意一下**: noteworthy but not urgent. This includes abnormal
+  price/portfolio moves without event confirmation, or sourced event context
+  that is worth reading but not enough to interrupt the user.
 - **Green / 无需关注**: context only.
 
 Never rank only by largest percentage move. A smaller move in a large weight
@@ -85,8 +97,9 @@ should not outrank a quiet stock's true anomaly.
 
 Technical analysis should read as `price + volume + trend + volatility`, not a
 raw indicator dump. Price abnormality and portfolio impact carry the alert bar.
-Volume, trend, and volatility explain whether the move is confirmed or noisy;
-they should not make a volume-only event high severity by themselves.
+Volume, trend, volatility, and event context explain whether the move is
+confirmed or noisy; they should not make a volume-only or headline-only event
+high severity by themselves.
 
 ## Visual Guidance
 
@@ -111,9 +124,9 @@ Every run must produce one user-facing decision:
   justify immediate interruption.
 - **Green / 无需关注**: no meaningful change in wired data.
 
-The decision should say what happened, why it did or did not clear the alert
-bar, whether it looks like one holding or the whole portfolio, and what the user
-should do next.
+The decision should say what happened, whether a sourced event was found nearby,
+why it did or did not clear the alert bar, whether it looks like one holding or
+the whole portfolio, and what the user should do next.
 
 ## Failure Behavior
 

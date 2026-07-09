@@ -9,8 +9,9 @@ Build a reusable Portfolio Watch Playbook, not a one-off ticker dashboard. Turn
 an incomplete user request into a running Alva workflow that normalizes the
 portfolio, computes attention-ranked signals, renders a status-first Playbook
 that answers `Anything big?` with a plain red/yellow/green result, shows
-concrete evidence for each holding, places the chart as the next evidence layer,
-and pushes only high-confidence alerts that link back to the matching signal.
+  concrete evidence for each holding, adds sourced event context when available,
+  places the chart as the next evidence layer, and pushes only high-confidence
+  alerts that link back to the matching signal.
 
 ## Build Order
 
@@ -41,15 +42,17 @@ and pushes only high-confidence alerts that link back to the matching signal.
 The first screen must answer: **Anything big?** It should show, in this order:
 
 1. A one-sentence explanation of what the Playbook monitors: price, volume,
-   trend, volatility, portfolio impact, and SPY/QQQ context.
+   trend, volatility, portfolio impact, SPY/QQQ context, and any successfully
+   wired event context such as recent news, earnings dates, or analyst changes.
 2. A large fixed `Anything big?` title, followed by a concrete answer sentence.
    Do not replace the title with the status label or narrative sentence. Use
    `narrative/brief.summary` when available and deterministic feed-backed prose
    otherwise.
-3. One row per working holding with concrete evidence: 1D move, relative move,
-   volume ratio, and portfolio impact.
-4. The top one or two changes worth inspecting, using evidence-backed language.
-5. The portfolio trend chart as the next evidence layer.
+3. One card per working holding with concrete evidence: 1D move, relative move,
+   volume ratio, portfolio impact, and whether the move has matched event
+   context or is still price-driven. When a matched news event has a URL,
+   render it as a clickable source link inside the holding card, not plain text.
+4. The portfolio trend chart as the next evidence layer.
 
 Keep `Anything big?` as the complete first region and place the chart directly
 below it. Do not make users start with `Watch`, `Medium`, score numbers,
@@ -60,19 +63,24 @@ is whether anything big happened and what concrete data supports that answer.
 Do not add a separate holdings-status table that repeats the first-screen
 holding cards. If a holding-level state is needed, put it in the first-screen
 cards or in the signal detail evidence. Use one visual component for all
-red/yellow/green labels across the page.
+red/yellow/green labels across the page. Do not add a separate
+`值得留意的变化` section when it repeats the same holdings already shown in the
+first-screen cards.
 
 Render `证据明细` as a table, not a repeated card grid. Keep stable anchors on
 the table rows so notifications can still deep-link to the relevant signal.
+Do not show low-value generic caveats under every evidence row. Only show
+missing-source copy when a source that normally participates in the decision was
+unavailable for the current run.
 Any visible signed return or relative-return percentage must use green for
 positive values and red for negative values, including values inside narrative
 sentences.
 
 When using alpi for user-facing prose, use it only to summarize already-wired
-feed data. It must not introduce news, earnings, analyst revisions, company
-catalysts, thesis changes, financial values, or recommendations that are not in
-the feed outputs. The page must work with deterministic fallback prose if the
-model output is unavailable.
+feed data. It may mention news, earnings dates, analyst changes, or catalysts
+only when those records exist in feed outputs. It must not invent thesis
+changes, financial values, events, or recommendations. The page must work with
+deterministic fallback prose if the model output is unavailable.
 
 ## Defaults
 
@@ -108,8 +116,9 @@ model output is unavailable.
   `notify/message`.
 - Do not claim the Playbook watches news, earnings, analyst revisions,
   company-specific catalysts, or holding thesis drivers unless those sources
-  are actually wired into the feed. If they are not wired, show them as
-  explicit blind spots.
+  are actually wired into the feed and succeeded for the current run. If they
+  are unavailable, show them as explicit blind spots and do not let them affect
+  red/yellow/green decisions.
 - Do send one explicit setup confirmation after the first successful
   subscription. Treat it as a one-time delivery-chain confirmation, not a
   market alert: the message must say the monitor is on, say it is not a market

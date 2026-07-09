@@ -17,7 +17,8 @@ Show a compact decision surface:
 
 - Main question: `Anything big?`
 - One-sentence product explanation: this Playbook monitors price moves, volume,
-  trend, volatility, portfolio impact, and SPY/QQQ context.
+  trend, volatility, portfolio impact, SPY/QQQ context, and successfully wired
+  event context such as recent news, earnings dates, or analyst changes.
 - Main title: render `Anything big?` as the large first-screen title.
 - Main answer: render one concrete sentence below that title from
   `narrative/brief.summary` when available, otherwise a deterministic sentence
@@ -25,12 +26,11 @@ Show a compact decision surface:
 - Do not render the overall status label as a large headline or duplicate
   top-right chip. The useful first-screen content is the concrete sentence and
   the holding-level red/yellow/green state.
-- Holding answers: one row per working holding using the same labels and
-  showing 1D return, relative return versus SPY, volume ratio, and portfolio
-  impact.
-- Worth-reading changes: one or two evidence-backed lines from
-  `narrative/brief.focus` when available, otherwise from the top non-green
-  `signals/events` rows.
+- Holding answers: one card per working holding using the same labels and
+  showing 1D return, relative return versus SPY, volume ratio, portfolio
+  impact, and a short background line such as `匹配到 1 条新闻` or
+  `暂未匹配到新闻/财报/预期变化`. If the matched event is news and has a URL,
+  render the source/title as a clickable link in the holding card.
 - Last checked should be a small timestamp, not a content block.
 - Use the same status-chip component everywhere a red/yellow/green label
   appears. Do not show both color-name labels such as `黄色` and action labels
@@ -40,7 +40,8 @@ Place the chart directly below the Anything Big region on desktop and mobile.
 Do not let KPI cards, alert history, raw scores, internal mechanism words,
 empty "why" fields, or generic "worth a look" copy crowd out this answer.
 Do not render a separate holdings table that repeats the first-screen holding
-cards.
+cards. Do not render a separate `值得留意的变化` section when it repeats the same
+holdings already shown in the first-screen cards.
 
 ## Portfolio Trend
 
@@ -72,28 +73,6 @@ scattering them around the chart. Time ranges should filter `chart/series` in
 the browser and rebase each visible line to 100 at the start of the selected
 range. Make the next section visible below the fold when possible.
 
-## 值得留意的变化
-
-This is part of the Anything Big first screen. Do not render a second standalone
-section below the chart that repeats the same signals.
-
-Show the top current changes sorted by the red/yellow/green user result, not by
-raw score or alert eligibility alone. Each row/card must include:
-
-- Symbol and title.
-- User status label: `无需关注`, `留意一下`, or `请立即关注`.
-- Short reason in ordinary language with concrete values: 1D move, relative move
-  versus SPY, volume ratio, and portfolio impact when available.
-- Four evidence chips: price, volume, trend, and volatility.
-- Portfolio impact.
-- Evidence summary.
-- Link target matching `deepLinkAnchor`.
-- Whether the signal is worth checking today or now.
-
-Yellow signals can be important to inspect without being worth a phone alert.
-Use concrete sentences with numbers rather than generic lines such as
-`TSLA 有变化值得看看，但还不到需要立刻处理。`
-
 ## 通知状态
 
 Show `alerts/decision` after `证据明细`, not before it:
@@ -121,8 +100,10 @@ table should show:
 - Why it is abnormal across price, volume, trend, and volatility.
 - Why it matters to the portfolio.
 - Evidence present.
-- Evidence missing, especially unwired sources such as news, earnings, analyst
-  revisions, company catalysts, or thesis drivers.
+- Event evidence from `context/events`, when present.
+- Missing-source copy only when a source that normally participates in the
+  decision was unavailable for the current run. Do not repeat generic caveats
+  under every row.
 - Source timestamp.
 - Data blind spots.
 
@@ -136,9 +117,10 @@ and constituent paths. Use runtime feed reads only. Do not inline chart data.
 Show `capability/status` so the Playbook is honest about its scope:
 
 - Already wired inputs, such as price, volume, trend, volatility, portfolio
-  impact, and SPY/QQQ context.
-- Not wired inputs, such as news, earnings, analyst revisions, company
-  catalysts, or thesis drivers.
+  impact, SPY/QQQ context, and event sources that succeeded in the current run.
+- Not wired or unavailable inputs, such as news, earnings, analyst revisions,
+  personal holding assumptions, options activity, or social signals that did
+  not participate in the current run.
 - A short limitation statement that the Playbook does not draw conclusions from
   unwired data.
 

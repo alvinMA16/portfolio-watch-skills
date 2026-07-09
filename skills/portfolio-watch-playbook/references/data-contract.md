@@ -87,6 +87,12 @@ Required fields:
 - `priceState`, `volumeState`, `trendState`, `volatilityState`
 - `reviewColor`, `reviewLabel`, `reviewReason`
 - `portfolioScope`, `confirmationStatus`
+- `contextState` - `matched_event`, `near_earnings`, `price_only`, or
+  `context_unavailable`.
+- `contextSummary` - plain sentence explaining whether event context was found.
+- `topEventType`, `topEventTitle`, `topEventSource`, `topEventUrl`,
+  `topEventAt` - top matched event, or empty strings.
+- `contextEventCount` - number of current context events kept for the symbol.
 - `severity`, `state`
 
 ### `history/prices`
@@ -135,12 +141,40 @@ Required fields:
 - `reviewColor`, `reviewLabel`, `reviewReason`
 - `portfolioScope`, `confirmationStatus`
 - `evidencePresent`, `evidenceMissing`
+- `contextState`, `contextSummary`, `contextEvidence`
+- `topEventType`, `topEventTitle`, `topEventSource`, `topEventUrl`,
+  `topEventAt`
 - `portfolioImpactPct`
 - `metricValue`
 - `baseline`
 - `asOf`
 - `dedupKey`
 - `deepLinkAnchor`
+
+### `context/events`
+
+Sourced event context used to explain whether a price or portfolio move has a
+real-world event nearby. This output is not a news feed for browsing; it is a
+small evidence layer for Portfolio Watch decisions.
+
+Required fields:
+
+- `eventId`
+- `symbol`
+- `eventType` - `news`, `earnings`, or `analyst`.
+- `catalystType` - normalized label such as `earnings_date`, `market_news`,
+  `analyst_target`, `estimate_revision`, `guidance`, `technology`, or `mna`.
+- `title`
+- `summary`
+- `source`
+- `url`
+- `publishedAt`
+- `eventDate`
+- `relevance`
+- `confidence`
+- `sourceStatus` - `ok`, `empty`, or `unavailable`.
+- `impactDirection` - `positive`, `negative`, `mixed`, or `unknown`.
+- `asOf`
 
 ### `alerts/events`
 
@@ -211,8 +245,10 @@ One latest row describing what the current build actually checks.
 
 Required fields:
 
-- `checkedItems` - comma-separated or sentence-style list of wired inputs.
-- `notCheckedItems` - list of important inputs that are not wired.
+- `checkedItems` - comma-separated or sentence-style list of inputs that
+  succeeded in the current run.
+- `notCheckedItems` - list of important inputs that are not wired or failed in
+  the current run.
 - `decisionLimit` - plain-language statement that the Playbook will not claim
   conclusions from unwired data.
 
@@ -226,6 +262,10 @@ Required fields:
 - Technical analysis must expose price, volume, trend, and volatility states as
   structured fields. Price abnormality remains the main trigger; volume, trend,
   and volatility should confirm, contextualize, or weaken the signal.
+- Event context is a confirmation layer, not a replacement for price and
+  portfolio relevance. Recent news, earnings dates, analyst target news, and
+  estimate revisions may make a signal easier to explain or raise confidence
+  only when the source records are present in `context/events`.
 - Keep signal reasons short and evidence-backed. User-facing reasons should
   include concrete values such as 1D return, relative return, volume ratio, and
   portfolio impact instead of generic "worth a look" phrasing.
@@ -233,13 +273,15 @@ Required fields:
   require users to translate severity bands, score thresholds, or quiet audit
   rows to understand the current state.
 - Keep `narrative/brief` separated from factual metric fields. It may rewrite
-  and summarize existing feed data, but it must not introduce new facts,
-  events, news, catalysts, estimates, or recommendations.
+  and summarize existing feed data, including records from `context/events`,
+  but it must not introduce new facts, events, news, catalysts, estimates, or
+  recommendations.
 - Do not expose internal terms such as `gate`, `review candidate`, or
   `portfolio risk elevated` as the primary UI answer. Use the red/yellow/green
   labels and explain them in ordinary language.
 - Do not claim news, earnings, analyst revisions, company catalysts, or thesis
   drivers are monitored unless a feed output is actually backed by those
-  sources. Put unwired sources in `capability/status.notCheckedItems`.
+  sources and the current run succeeded. Put unavailable sources in
+  `capability/status.notCheckedItems`.
 - Store assumptions explicitly: weights, benchmark, cadence, missing coverage,
   and sensitivity.
