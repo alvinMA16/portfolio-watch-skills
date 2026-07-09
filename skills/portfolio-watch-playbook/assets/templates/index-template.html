@@ -389,6 +389,7 @@
       }
       .is-up { color: var(--main-m3); }
       .is-down { color: var(--main-m4); }
+      .is-watch { color: var(--main-m1); }
       .is-neutral { color: var(--text-n9); }
       .signal-list,
       .detail-grid {
@@ -464,6 +465,29 @@
       }
       .tech-summary {
         margin-top: var(--spacing-xs);
+      }
+      .evidence-pair {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: var(--spacing-s);
+        margin-top: var(--spacing-xs);
+      }
+      .evidence-box {
+        min-width: 0;
+        padding: var(--spacing-s);
+        border-radius: var(--radius-ct-s);
+        background: var(--b0-page);
+      }
+      .evidence-label {
+        font-size: 11px;
+        line-height: 18px;
+        color: var(--text-n5);
+        margin-bottom: 2px;
+      }
+      .capability-list {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: var(--spacing-s);
       }
       .watch-table-surface {
         overflow-x: auto;
@@ -581,6 +605,10 @@
         .detail-grid {
           grid-template-columns: 1fr;
         }
+        .evidence-pair,
+        .capability-list {
+          grid-template-columns: 1fr;
+        }
       }
       @media (max-width: 520px) {
         .playbook-container {
@@ -626,35 +654,39 @@
       </div>
       <div class="error-box" id="errorBox"></div>
 
-      <section class="visual-stage" aria-label="Portfolio attention status">
-        <aside class="attention-panel" aria-label="Portfolio Attention Status">
+      <section class="visual-stage" aria-label="Portfolio status">
+        <aside class="attention-panel" aria-label="Anything big">
           <div class="attention-card">
-            <div class="attention-kicker">Portfolio Attention Status</div>
-            <h1 class="attention-question">Do you need to review anything now?</h1>
+            <div class="attention-kicker">Portfolio Watch</div>
+            <h1 class="attention-question">Anything big?</h1>
 
             <div class="attention-status-row">
               <div class="overall-status">
-                <div class="attention-meta-label">Overall status</div>
+                <div class="attention-meta-label">当前判断</div>
                 <div class="overall-label" id="overallStatus">...</div>
                 <div class="overall-subtitle" id="overallSubtitle">...</div>
               </div>
               <span class="status-badge" id="overallBadge">...</span>
             </div>
 
-            <div class="attention-meta-label answer-heading">Today’s answer</div>
+            <div class="attention-meta-label answer-heading">每只持仓</div>
             <div class="answer-list" id="todayAnswers"></div>
 
             <div class="attention-meta-grid">
               <div>
-                <div class="attention-meta-label">Why</div>
+                <div class="attention-meta-label">为什么</div>
                 <div class="why-text" id="attentionWhy">...</div>
               </div>
               <div>
-                <div class="attention-meta-label">Last checked</div>
+                <div class="attention-meta-label">是不是组合问题</div>
+                <div class="why-text" id="portfolioScope">...</div>
+              </div>
+              <div>
+                <div class="attention-meta-label">最近检查</div>
                 <div class="why-text" id="lastChecked">...</div>
               </div>
               <div>
-                <div class="attention-meta-label">Next watch</div>
+                <div class="attention-meta-label">下一次留意</div>
                 <div class="next-watch-text" id="nextWatch">...</div>
               </div>
             </div>
@@ -688,7 +720,7 @@
       <section class="grid" aria-label="Portfolio watch details">
         <div class="panel col-12" id="signals">
           <div class="section-title">
-            <span class="section-title-text">What matters now</span>
+            <span class="section-title-text">今天要看什么</span>
             <span class="section-meta" id="signalStamp"></span>
           </div>
           <div class="signal-list" id="signalList"></div>
@@ -696,20 +728,25 @@
 
         <div class="panel col-12">
           <div class="section-title">
-            <span class="section-title-text">Holdings state</span>
+            <span class="section-title-text">持仓状态</span>
             <span class="section-meta" id="tableStamp"></span>
           </div>
           <div class="watch-table-surface" id="assetTable"></div>
         </div>
 
         <div class="panel col-6">
-          <div class="section-title"><span class="section-title-text">Signal detail</span></div>
+          <div class="section-title"><span class="section-title-text">为什么这么判断</span></div>
           <div class="detail-grid" id="signalDetails"></div>
         </div>
 
         <div class="panel col-6">
-          <div class="section-title"><span class="section-title-text">Alert history</span></div>
+          <div class="section-title"><span class="section-title-text">为什么没通知你</span></div>
           <div class="detail-grid" id="alertHistory"></div>
+        </div>
+
+        <div class="panel col-12">
+          <div class="section-title"><span class="section-title-text">当前在看什么</span></div>
+          <div id="capabilityStatus"></div>
         </div>
       </section>
     </main>
@@ -728,6 +765,7 @@
         signals: feedPath("signals", "events", "@last/1"),
         alerts: feedPath("alerts", "events", "@last/5"),
         decision: feedPath("alerts", "decision", "@last/1"),
+        capability: feedPath("capability", "status", "@last/1"),
       };
       const PALETTE = ["#2f8f9d", "#d96b5f", "#5e72c8", "#78994e", "#b565a7", "#c48c3f", "#60798d"];
       const FONT = "'Delight', -apple-system, 'OPPO Sans 4.0', BlinkMacSystemFont, sans-serif";
@@ -871,61 +909,100 @@
           })
           .sort((a, b) => rowDateMs(a) - rowDateMs(b));
       }
-      function riskStateLabel(value) {
-        return value || "--";
+      function normalizedColor(value) {
+        const color = String(value || "").toLowerCase();
+        return color === "red" || color === "yellow" || color === "green" ? color : "";
+      }
+      function colorLabel(color) {
+        if (color === "red") return "请立即关注";
+        if (color === "yellow") return "留意一下";
+        return "无需关注";
+      }
+      function colorBody(color) {
+        if (color === "red") return "有重大变化，建议现在查看。";
+        if (color === "yellow") return "有变化值得看看，但还不到需要立刻处理。";
+        return "当前没有值得你查看的变化。";
+      }
+      function colorBadge(color) {
+        if (color === "red") return "RED";
+        if (color === "yellow") return "YELLOW";
+        return "GREEN";
+      }
+      function statusClass(color) {
+        if (color === "red") return "is-down";
+        if (color === "yellow") return "is-watch";
+        return "is-neutral";
+      }
+      function reviewColorForRow(row) {
+        const explicit = normalizedColor(row.reviewColor || row.bigStatusColor);
+        if (explicit) return explicit;
+        if (row.severity === "high") return "red";
+        if (row.severity === "medium") return "yellow";
+        return "green";
+      }
+      function reviewPriorityForRow(row) {
+        const color = reviewColorForRow(row);
+        if (color === "red") return 3;
+        if (color === "yellow") return 2;
+        return 1;
       }
       function renderSummary(summary) {
-        const benchmarkText = summary.benchmarks ? `Benchmarks ${summary.benchmarks}` : "No benchmark series";
+        const benchmarkText = summary.benchmarks ? `基准 ${summary.benchmarks}` : "暂无基准曲线";
         document.getElementById("statusStrip").innerHTML =
           `<span class="pill">${escapeHtml(summary.universe || "")}</span>` +
           `<span class="pill">${escapeHtml(summary.weighting || "")}</span>` +
           `<span class="pill">${escapeHtml(benchmarkText)}</span>` +
-          `<span class="pill">As of ${escapeHtml(fmtDate(summary.asOf))}</span>` +
-          (summary.missingBenchmarks ? `<span class="pill">Missing benchmarks: ${escapeHtml(summary.missingBenchmarks)}</span>` : "");
+          `<span class="pill">更新 ${escapeHtml(fmtDate(summary.asOf))}</span>` +
+          (summary.missingBenchmarks ? `<span class="pill">缺失基准: ${escapeHtml(summary.missingBenchmarks)}</span>` : "");
       }
       function attentionStatusModel(summary, decision, signals) {
+        const explicit = normalizedColor(decision.bigStatusColor || summary.bigStatusColor);
+        if (explicit) {
+          return {
+            color: explicit,
+            badge: colorBadge(explicit),
+            label: decision.bigStatusLabel || summary.bigStatusLabel || colorLabel(explicit),
+            subtitle: decision.bigStatusBody || summary.bigStatusBody || colorBody(explicit),
+          };
+        }
         const state = String(decision.notificationState || "quiet");
         const highCount = summary.highSignalCount || signals.filter((row) => row.severity === "high").length;
         const attentionCount = summary.attentionCount || signals.filter((row) => row.severity === "high" || row.severity === "medium").length;
         if (state === "sent" || highCount > 0 || summary.riskState === "Alert") {
-          const symbol = decision.topSymbol && decision.topSymbol !== "PORTFOLIO" ? decision.topSymbol : signals.find((row) => row.severity === "high")?.symbol;
           return {
             color: "red",
-            badge: "Red",
-            label: attentionCount > 1 ? "Portfolio risk elevated" : `Review ${symbol || "portfolio"} now`,
-            subtitle: "Review trigger fired",
+            badge: "RED",
+            label: colorLabel("red"),
+            subtitle: colorBody("red"),
           };
         }
         if (state === "watch" || attentionCount > 0 || summary.riskState === "Watch") {
           return {
             color: "yellow",
-            badge: "Yellow",
-            label: attentionCount > 1 ? "Portfolio risk elevated" : "Digest-worthy changes",
-            subtitle: "Worth reading in the Playbook, but below the ping bar",
+            badge: "YELLOW",
+            label: colorLabel("yellow"),
+            subtitle: colorBody("yellow"),
           };
         }
         return {
           color: "green",
-          badge: "Green",
-          label: "No urgent review needed",
-          subtitle: "No holding crossed the review trigger in this run",
+          badge: "GREEN",
+          label: colorLabel("green"),
+          subtitle: colorBody("green"),
         };
       }
       function answerForAsset(asset, signal) {
-        const severity = signal ? signal.severity : asset.severity;
-        if (severity === "high") return { label: "Review now", className: "is-down" };
-        if (severity === "medium") return { label: "Digest-worthy", className: "is-neutral" };
-        if (signal && signal.score > 0) return { label: "Logged only", className: "is-neutral" };
-        return { label: "No review needed", className: "is-neutral" };
+        const row = signal || asset || {};
+        const color = reviewColorForRow(row);
+        return { label: row.reviewLabel || colorLabel(color), className: statusClass(color) };
       }
       function buildNextWatch(summary, decision, signals) {
+        if (decision.nextTrigger) return decision.nextTrigger;
         const top = signals.slice().sort((a, b) => (b.score || 0) - (a.score || 0))[0];
-        if (top && (top.severity === "high" || top.severity === "medium")) {
-          const driver = top.primaryTechnicalDriver || top.triggerType || "price action";
-          return `${top.symbol} ${driver} expanding further, or portfolio impact rising to the alert bar.`;
+        if (top && reviewColorForRow(top) !== "green") {
+          return `${top.symbol} 的变化继续扩大，组合影响升高，或多只持仓同时异常。`;
         }
-        const threshold = typeof decision.threshold === "number" ? `attention score >= ${fmtNumber(decision.threshold, 0)}` : "a high-severity signal";
-        return `An abnormal holding move confirmed by volume, trend, or volatility, or several holdings weakening together. The next ping needs ${threshold} and must not be a duplicate.`;
+        return "价格、成交量、趋势、波动率或组合影响出现更明显变化。";
       }
       function renderAttentionStatus(summary, decision, assets, signals) {
         const model = attentionStatusModel(summary, decision, signals);
@@ -934,9 +1011,9 @@
         badge.classList.remove("green", "yellow", "red");
         badge.classList.add(model.color);
         document.getElementById("overallStatus").textContent = model.label;
-        document.getElementById("overallSubtitle").textContent =
-          `${model.subtitle} · ${riskStateLabel(summary.riskState)} · 1D ${fmtPct(summary.return1d)} / 1M ${fmtPct(summary.return1m)}`;
-        document.getElementById("attentionWhy").textContent = decision.decisionBody || "No high-severity signal fired in this run.";
+        document.getElementById("overallSubtitle").textContent = model.subtitle;
+        document.getElementById("attentionWhy").textContent = decision.decisionBody || model.subtitle;
+        document.getElementById("portfolioScope").textContent = decision.portfolioScope || summary.portfolioScope || "没有看到组合层面的异常。";
         document.getElementById("lastChecked").textContent = fmtDate(summary.asOf || decision.asOf);
         document.getElementById("nextWatch").textContent = buildNextWatch(summary, decision, signals);
 
@@ -950,8 +1027,8 @@
           const signal = signalBySymbol[asset.symbol];
           const answer = answerForAsset(asset, signal);
           const detail = signal
-            ? signal.reason || signal.technicalSummary || `${asset.priceState || "--"} / ${asset.trendState || "--"}`
-            : asset.technicalSummary || `${asset.state || "Normal"} · 1D ${fmtPct(asset.return1d)}`;
+            ? signal.reviewReason || signal.reason || signal.technicalSummary || `${asset.priceState || "--"} / ${asset.trendState || "--"}`
+            : asset.reviewReason || `${asset.symbol} 当前没有值得你查看的变化。`;
           return `<div class="answer-row">` +
             `<div class="answer-symbol">${escapeHtml(asset.symbol)}</div>` +
             `<div><div class="answer-state ${answer.className}">${escapeHtml(answer.label)}</div>` +
@@ -1116,16 +1193,45 @@
         renderTrendChart();
       }
       function signalIntent(row) {
-        if (row.severity === "high") return "Cleared alert bar";
-        if (row.severity === "medium") return "Inspect, no ping";
-        return "Context only";
+        const color = reviewColorForRow(row);
+        if (color === "red") return "建议现在查看";
+        if (color === "yellow") return "今天有空可以看一眼";
+        return "无需关注";
+      }
+      function stateText(value) {
+        if (!value) return "--";
+        const map = {
+          "abnormal up": "异常上涨",
+          "abnormal down": "异常下跌",
+          "weak": "偏弱",
+          "firm": "偏强",
+          "normal": "正常",
+          "volume spike": "明显放量",
+          "volume elevated": "成交量偏高",
+          "normal volume": "成交量正常",
+          "volume unknown": "成交量未知",
+          "price": "价格",
+          "volume": "成交量",
+          "trend": "趋势",
+          "volatility": "波动率",
+          "trend firm": "趋势偏强",
+          "trend weak": "趋势偏弱",
+          "trend stable": "趋势稳定",
+          "trend unknown": "趋势未知",
+          "stretched": "走势拉伸",
+          "volatility expanded": "波动扩大",
+          "volatility elevated": "波动偏高",
+          "normal volatility": "波动正常",
+          "volatility unknown": "波动未知",
+        };
+        return map[value] || value;
       }
       function techChips(row) {
         const chips = [
-          ["Price", row.priceState],
-          ["Volume", row.volumeState],
-          ["Trend", row.trendState],
-          ["Vol", row.volatilityState],
+          ["价格", stateText(row.priceState)],
+          ["成交量", stateText(row.volumeState)],
+          ["趋势", stateText(row.trendState)],
+          ["波动", stateText(row.volatilityState)],
         ];
         return `<div class="tech-chip-row">` + chips.map(([label, value]) =>
           `<span class="tech-chip"><span class="tech-chip-label">${escapeHtml(label)}</span>${escapeHtml(value || "--")}</span>`
@@ -1135,63 +1241,83 @@
         return `<div class="watch-table-cell ${className || ""}">${html}</div>`;
       }
       function technicalCell(row) {
-        const driver = row.primaryTechnicalDriver ? `Driver: ${row.primaryTechnicalDriver}` : "Driver: --";
-        const score = typeof row.technicalScore === "number" ? `Tech ${fmtNumber(row.technicalScore, 0)}` : "Tech --";
-        const summary = row.technicalSummary || row.evidence || "";
+        const driver = row.primaryTechnicalDriver ? `主要变化：${stateText(row.primaryTechnicalDriver)}` : "主要变化：--";
+        const summary = row.reviewReason || row.technicalSummary || row.evidence || "";
         return rawCell(
-          `<div class="tech-cell-title">${escapeHtml(driver)} / ${escapeHtml(score)}</div>` +
+          `<div class="tech-cell-title">${escapeHtml(driver)}</div>` +
           `<div class="tech-cell-sub">${escapeHtml(summary)}</div>`,
           "is-technical"
         );
       }
       function renderSignals(signals) {
         const important = signals
-          .filter((row) => row.severity === "high" || row.severity === "medium")
-          .sort((a, b) => (b.score || 0) - (a.score || 0))
+          .filter((row) => reviewColorForRow(row) !== "green")
+          .sort((a, b) => {
+            const priorityDiff = reviewPriorityForRow(b) - reviewPriorityForRow(a);
+            if (priorityDiff) return priorityDiff;
+            return (b.score || 0) - (a.score || 0);
+          })
           .slice(0, 3);
-        const detailRows = signals.slice().sort((a, b) => (b.score || 0) - (a.score || 0)).slice(0, 6);
+        const detailRows = signals.slice().sort((a, b) => {
+          const priorityDiff = reviewPriorityForRow(b) - reviewPriorityForRow(a);
+          if (priorityDiff) return priorityDiff;
+          return (b.score || 0) - (a.score || 0);
+        }).slice(0, 6);
         document.getElementById("signalStamp").textContent = detailRows.length ? fmtDate(detailRows[0].asOf) : "";
         if (!important.length) {
           document.getElementById("signalList").innerHTML =
-            `<div class="empty-block"><div class="signal-title">No technical anomaly right now</div>` +
-            `<div class="detail-text">The automation checked price, volume, trend, and volatility. Nothing rose to medium or high attention in this run.</div></div>`;
+            `<div class="empty-block"><div class="signal-title">无需关注</div>` +
+            `<div class="detail-text">当前没有值得你查看的变化。本版本已检查价格、成交量、趋势、波动率、组合影响和 SPY/QQQ 对比。</div></div>`;
         } else {
           document.getElementById("signalList").innerHTML = important.map((row) => {
             const anchor = row.deepLinkAnchor || `signal-${row.signalId}`;
+            const color = reviewColorForRow(row);
             return `<a class="signal-card" href="#${escapeHtml(anchor)}">` +
-              `<div class="signal-top"><span class="signal-symbol">${escapeHtml(row.symbol)}</span><span class="severity ${escapeHtml(row.severity)}">${escapeHtml(row.severity)}</span></div>` +
-              `<div class="signal-title">${escapeHtml(row.title)}</div>` +
-              `<div class="signal-reason">${escapeHtml(row.reason)}</div>` +
+              `<div class="signal-top"><span class="signal-symbol">${escapeHtml(row.symbol)}</span><span class="severity ${escapeHtml(color)}">${escapeHtml(row.reviewLabel || colorLabel(color))}</span></div>` +
+              `<div class="signal-title">${escapeHtml(row.reviewLabel || colorLabel(color))}</div>` +
+              `<div class="signal-reason">${escapeHtml(row.reviewReason || row.reason)}</div>` +
               techChips(row) +
-              `<div class="tech-summary">${escapeHtml(row.technicalSummary || row.evidence || "")}</div>` +
-              `<div class="metric-caption">${escapeHtml(signalIntent(row))} / Impact ${fmtPct(row.portfolioImpactPct)} / Score ${fmtNumber(row.score, 0)}</div>` +
+              `<div class="metric-caption">${escapeHtml(signalIntent(row))} / 组合影响 ${fmtPct(row.portfolioImpactPct)}</div>` +
               `</a>`;
           }).join("");
         }
         document.getElementById("signalDetails").innerHTML = detailRows.map((row) => {
           const anchor = row.deepLinkAnchor || `signal-${row.signalId}`;
+          const color = reviewColorForRow(row);
           return `<article class="detail-card" id="${escapeHtml(anchor)}">` +
-            `<div class="signal-top"><span class="signal-symbol">${escapeHtml(row.symbol)}</span><span class="severity ${escapeHtml(row.severity)}">${escapeHtml(row.severity)}</span></div>` +
-            `<div class="signal-title">${escapeHtml(row.title)}</div>` +
-            `<div class="detail-text">${escapeHtml(row.reason)}</div>` +
+            `<div class="signal-top"><span class="signal-symbol">${escapeHtml(row.symbol)}</span><span class="severity ${escapeHtml(color)}">${escapeHtml(row.reviewLabel || colorLabel(color))}</span></div>` +
+            `<div class="signal-title">${escapeHtml(row.reviewReason || row.title)}</div>` +
+            `<div class="detail-text">${escapeHtml(row.confirmationStatus || "")}</div>` +
             techChips(row) +
-            `<div class="detail-text">${escapeHtml(row.technicalSummary || "")}</div>` +
-            `<div class="detail-text">${escapeHtml(row.evidence)}</div>` +
-            `<div class="metric-caption">${escapeHtml(signalIntent(row))} / Driver ${escapeHtml(row.primaryTechnicalDriver || row.triggerType || "--")} / ${escapeHtml(fmtDate(row.asOf))}</div>` +
+            `<div class="evidence-pair">` +
+            `<div class="evidence-box"><div class="evidence-label">已接入证据</div><div class="detail-text">${escapeHtml(row.evidencePresent || row.evidence || "")}</div></div>` +
+            `<div class="evidence-box"><div class="evidence-label">暂未接入</div><div class="detail-text">${escapeHtml(row.evidenceMissing || "新闻、财报、分析师预期或公司催化剂未接入本次判断。")}</div></div>` +
+            `</div>` +
+            `<div class="metric-caption">${escapeHtml(signalIntent(row))} / ${escapeHtml(fmtDate(row.asOf))}</div>` +
             `</article>`;
         }).join("");
       }
-      function renderAlerts(alerts) {
+      function renderAlerts(alerts, decision) {
+        if (decision && decision.notificationAudit) {
+          document.getElementById("alertHistory").innerHTML =
+            `<article class="alert-card">` +
+            `<div class="signal-top"><span class="signal-symbol">PORTFOLIO</span><span class="severity ${escapeHtml(normalizedColor(decision.bigStatusColor) || "quiet")}">${escapeHtml(decision.bigStatusLabel || "无需关注")}</span></div>` +
+            `<div class="signal-title">${escapeHtml(decision.decisionTitle || "无需关注")}</div>` +
+            `<div class="detail-text">${escapeHtml(decision.notificationAudit)}</div>` +
+            `<div class="metric-caption">${escapeHtml(decision.nextAction || "无需操作。")}</div>` +
+            `</article>`;
+          return;
+        }
         const sorted = alerts.slice().sort((a, b) => (b.date || 0) - (a.date || 0)).slice(0, 4);
         const quietCount = sorted.filter((row) => row.deliveryState === "quiet" || row.severity === "quiet").length;
         const actionable = sorted.filter((row) => row.deliveryState !== "quiet" && row.severity !== "quiet");
         if (!actionable.length && quietCount) {
           document.getElementById("alertHistory").innerHTML =
             `<article class="alert-card">` +
-            `<div class="signal-top"><span class="signal-symbol">PORTFOLIO</span><span class="severity quiet">QUIET</span></div>` +
-            `<div class="signal-title">Recent runs quiet</div>` +
-            `<div class="detail-text">${quietCount} recent run${quietCount === 1 ? "" : "s"} had no high-severity notification.</div>` +
-            `<div class="metric-caption">Quiet runs do not send heartbeat alerts.</div>` +
+            `<div class="signal-top"><span class="signal-symbol">PORTFOLIO</span><span class="severity quiet">无需关注</span></div>` +
+            `<div class="signal-title">没有通知你</div>` +
+            `<div class="detail-text">最近 ${quietCount} 次运行没有达到请立即关注级别。</div>` +
+            `<div class="metric-caption">无大事时不会发送心跳通知。</div>` +
             `</article>`;
           return;
         }
@@ -1200,9 +1326,25 @@
           `<div class="signal-top"><span class="signal-symbol">${escapeHtml(row.symbol)}</span><span class="severity ${escapeHtml(row.severity)}">${escapeHtml(row.deliveryState || row.severity)}</span></div>` +
           `<div class="signal-title">${escapeHtml(row.title)}</div>` +
           `<div class="detail-text">${escapeHtml(row.body)}</div>` +
-          `<div class="metric-caption">Trigger ${escapeHtml(row.triggerType)} / ${escapeHtml(fmtDate(row.asOf))}</div>` +
+          `<div class="metric-caption">触发项 ${escapeHtml(row.triggerType)} / ${escapeHtml(fmtDate(row.asOf))}</div>` +
           `</article>`
         ).join("");
+      }
+      function renderCapability(capability) {
+        const fallback = {
+          checkedItems: "价格波动、成交量、趋势、波动率、组合影响、SPY/QQQ 对比",
+          notCheckedItems: "新闻、财报、分析师预期、公司催化剂",
+          decisionLimit: "本版本只用已接入的数据判断是否需要关注；不会把未接入的新闻、预期或催化剂当成结论。",
+        };
+        const row = capability || fallback;
+        document.getElementById("capabilityStatus").innerHTML =
+          `<div class="detail-card">` +
+          `<div class="capability-list">` +
+          `<div class="evidence-box"><div class="evidence-label">已接入</div><div class="detail-text">${escapeHtml(row.checkedItems || fallback.checkedItems)}</div></div>` +
+          `<div class="evidence-box"><div class="evidence-label">暂未接入</div><div class="detail-text">${escapeHtml(row.notCheckedItems || fallback.notCheckedItems)}</div></div>` +
+          `</div>` +
+          `<div class="metric-caption">${escapeHtml(row.decisionLimit || fallback.decisionLimit)}</div>` +
+          `</div>`;
       }
       function cell(value, className) {
         return `<div class="watch-table-cell ${className || ""}">${escapeHtml(value)}</div>`;
@@ -1245,34 +1387,38 @@
       }
       function renderTable(assets) {
         document.getElementById("tableStamp").textContent = assets.length ? fmtDate(assets[0].asOf) : "";
-        const sorted = assets.slice().sort((a, b) => (b.attentionScore || 0) - (a.attentionScore || 0));
+        const sorted = assets.slice().sort((a, b) => {
+          const priorityDiff = reviewPriorityForRow(b) - reviewPriorityForRow(a);
+          if (priorityDiff) return priorityDiff;
+          return (b.attentionScore || 0) - (a.attentionScore || 0);
+        });
         document.getElementById("assetTable").innerHTML =
           `<div class="watch-table-row table-header">` +
-          cell("Symbol") + cell("Company") + cell("Weight") + cell("1D") + cell("Rel 1D") +
-          cell("Technical state") + cell("Volume") + cell("Severity") +
+          cell("Symbol") + cell("Weight") + cell("1D") + cell("Rel 1D") +
+          cell("状态") + cell("为什么") + cell("证据") +
           `</div>` +
           sorted.map((row) =>
             `<div class="watch-table-row table-body-row">` +
             cell(row.symbol) +
-            cell(row.name || row.symbol) +
             cell(fmtNumber(row.watchWeightPct, 2) + "%") +
             cell(fmtPct(row.return1d), clsFor(row.return1d)) +
             cell(fmtPct(row.relativeReturn1d), clsFor(row.relativeReturn1d)) +
+            cell(row.reviewLabel || colorLabel(reviewColorForRow(row)), statusClass(reviewColorForRow(row))) +
             technicalCell(row) +
-            cell(`${row.volumeState || "--"} / ${fmtNumber(row.volumeRatio20d, 2)}x`) +
-            cell(`${row.severity || "--"} / ${fmtNumber(row.attentionScore, 0)}`) +
+            cell(`${stateText(row.priceState)} / ${stateText(row.volumeState)}`) +
             `</div>`
           ).join("");
         initTableAlignment(document.getElementById("assetTable"));
       }
       async function init() {
-        const [summaryRaw, assetRaw, chartRaw, signalRaw, alertRaw, decisionRaw] = await Promise.all([
+        const [summaryRaw, assetRaw, chartRaw, signalRaw, alertRaw, decisionRaw, capabilityRaw] = await Promise.all([
           readAlfsJson(PATHS.summary),
           readAlfsJson(PATHS.assets),
           readAlfsJson(PATHS.chartSeries),
           readAlfsJson(PATHS.signals),
           readAlfsJson(PATHS.alerts),
           readAlfsJson(PATHS.decision),
+          readAlfsJson(PATHS.capability).catch(() => []),
         ]);
         const summary = last(flattenRows(summaryRaw));
         allAssets = flattenRows(assetRaw);
@@ -1289,8 +1435,9 @@
         renderSummary(summary);
         renderAttentionStatus(summary, decision, allAssets, allSignals);
         renderSignals(allSignals);
-        renderAlerts(alerts);
+        renderAlerts(alerts, decision);
         renderTable(allAssets);
+        renderCapability(last(flattenRows(capabilityRaw)));
         renderControlsAndChart();
         if (window.location.hash) {
           requestAnimationFrame(() => {

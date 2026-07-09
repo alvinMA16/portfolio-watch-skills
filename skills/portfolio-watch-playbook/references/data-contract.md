@@ -22,8 +22,17 @@ Required fields:
 - `portfolioIndex` - normalized portfolio index.
 - `return1d`, `return1w`, `return1m` - weighted returns in percent.
 - `attentionCount` - number of medium/high signals.
-- `highSignalCount` - number of high-severity signals.
+- `highSignalCount` - number of raw high-severity signals kept for backward
+  compatibility; user-facing alert eligibility is `redSignalCount`.
+- `redSignalCount` - number of holdings with `请立即关注` status.
+- `yellowSignalCount` - number of holdings with `留意一下` status.
 - `riskState` - user-facing state such as `Normal`, `Watch`, or `Alert`.
+- `bigStatusColor` - `green`, `yellow`, or `red` for the first-screen answer.
+- `bigStatusLabel` - localized status label, such as `无需关注`, `留意一下`,
+  or `请立即关注`.
+- `bigStatusBody` - one plain-language sentence explaining the answer.
+- `portfolioScope` - plain-language read on whether the issue is single-name or
+  portfolio-wide.
 - `missingSymbols` - comma-separated failed symbols, if any.
 - `missingBenchmarks` - comma-separated failed benchmark lookups, if any.
 
@@ -57,6 +66,8 @@ Required fields:
 - `attentionScore`, `technicalScore`, `primaryTechnicalDriver`
 - `technicalSummary`
 - `priceState`, `volumeState`, `trendState`, `volatilityState`
+- `reviewColor`, `reviewLabel`, `reviewReason`
+- `portfolioScope`, `confirmationStatus`
 - `severity`, `state`
 
 ### `history/prices`
@@ -102,6 +113,9 @@ Required fields:
 - `triggerType`
 - `primaryTechnicalDriver`
 - `priceState`, `volumeState`, `trendState`, `volatilityState`
+- `reviewColor`, `reviewLabel`, `reviewReason`
+- `portfolioScope`, `confirmationStatus`
+- `evidencePresent`, `evidenceMissing`
 - `portfolioImpactPct`
 - `metricValue`
 - `baseline`
@@ -112,7 +126,7 @@ Required fields:
 ### `alerts/events`
 
 Events eligible for user interruption in the current run. Usually this is the
-high-severity subset of `signals/events`.
+`Red / 请立即关注` subset of `signals/events`.
 
 Required fields:
 
@@ -138,6 +152,11 @@ Required fields:
 - `notificationState` - `quiet`, `watch`, `sent`, or `setup`.
 - `decisionTitle` - plain user-facing conclusion, such as `No ping sent`.
 - `decisionBody` - one or two sentences explaining the decision.
+- `bigStatusColor`, `bigStatusLabel`, `bigStatusBody` - first-screen
+  red/yellow/green answer in user language.
+- `portfolioScope` - whether the current issue is single-holding or
+  portfolio-wide.
+- `notificationAudit` - why a push was or was not sent.
 - `topSignalId` - top signal id, or empty string when no signal exists.
 - `topSymbol` - symbol driving the decision, or `PORTFOLIO`.
 - `topSeverity` - top signal severity, or `quiet`.
@@ -163,9 +182,20 @@ Required fields:
 - `title`
 - `body`
 
-When no high-severity event exists and no first-subscription setup
+When no red event exists and no first-subscription setup
 confirmation was explicitly requested, `body` must contain
 `<|SKIP_NOTIFICATION|>`.
+
+### `capability/status`
+
+One latest row describing what the current build actually checks.
+
+Required fields:
+
+- `checkedItems` - comma-separated or sentence-style list of wired inputs.
+- `notCheckedItems` - list of important inputs that are not wired.
+- `decisionLimit` - plain-language statement that the Playbook will not claim
+  conclusions from unwired data.
 
 ## Data Rules
 
@@ -181,5 +211,11 @@ confirmation was explicitly requested, `body` must contain
 - Keep `alerts/decision` plain-language and user-facing. The page must not
   require users to translate severity bands, score thresholds, or quiet audit
   rows to understand the current state.
+- Do not expose internal terms such as `gate`, `review candidate`, or
+  `portfolio risk elevated` as the primary UI answer. Use the red/yellow/green
+  labels and explain them in ordinary language.
+- Do not claim news, earnings, analyst revisions, company catalysts, or thesis
+  drivers are monitored unless a feed output is actually backed by those
+  sources. Put unwired sources in `capability/status.notCheckedItems`.
 - Store assumptions explicitly: weights, benchmark, cadence, missing coverage,
   and sensitivity.

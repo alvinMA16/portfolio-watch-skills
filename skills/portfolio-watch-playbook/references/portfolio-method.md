@@ -6,9 +6,10 @@ show which holdings deserve attention now, why, and whether the user should be
 interrupted.
 
 The product output is a visual portfolio read, not a score report. Scores,
-severity bands, and indicators are implementation details that support two
-plain-language answers: what is important to inspect, and what is important
-enough to interrupt the user.
+severity bands, and indicators are implementation details that support one
+plain-language answer: **Anything big?** The user-facing answer must use
+`Green / 无需关注`, `Yellow / 留意一下`, or `Red / 请立即关注`, not raw scores or
+internal alert mechanics.
 
 ## Inputs
 
@@ -39,8 +40,9 @@ principle is:
 `attention = abnormality + portfolio relevance + explainability + freshness - repeated noise`
 
 Portfolio relevance and abnormality must dominate ranking. News, options,
-social, macro, and analyst catalysts may boost severity when sourced, but they
-must not replace structured market evidence.
+social, macro, and analyst catalysts may boost severity only when sourced. If
+they are not wired, explicitly say they are not checked; do not imply a thesis
+or catalyst change from price action alone.
 
 ## Watched Dimensions
 
@@ -67,11 +69,15 @@ Optional dimensions when coverage is verified:
 
 ## Severity Guidance
 
-- **High**: material portfolio impact, abnormal move, fresh data, clear reason,
-  and no recent duplicate. Eligible for push.
-- **Medium**: noteworthy but missing one high-severity gate. Show in Playbook,
-  do not push.
-- **Low**: context only. Show in holdings/detail views, do not push.
+Internal severity can still use `high`, `medium`, and `low` for scoring and
+backward compatibility, but the Playbook must translate it before showing it to
+users:
+
+- **Red / 请立即关注**: material portfolio impact, abnormal move, fresh data,
+  clear reason, and no recent duplicate. Eligible for push.
+- **Yellow / 留意一下**: noteworthy but not urgent. Show in Playbook, do not
+  push.
+- **Green / 无需关注**: context only.
 
 Never rank only by largest percentage move. A smaller move in a large weight
 can outrank a larger move in a small weight. A volatile stock's ordinary move
@@ -99,13 +105,15 @@ the user. Keep these three jobs separate.
 
 Every run must produce one user-facing decision:
 
-- **Sent**: a fresh, non-duplicate high signal triggered a notification.
-- **Watch**: the top signal is medium severity or close to the alert bar, but
-  not worth interrupting the user.
-- **Quiet**: no material signal, or a high signal was suppressed as a duplicate.
+- **Red / 请立即关注**: a fresh, non-duplicate, material event triggered or would
+  trigger a notification.
+- **Yellow / 留意一下**: a change is worth reading in the Playbook, but does not
+  justify immediate interruption.
+- **Green / 无需关注**: no meaningful change in wired data.
 
 The decision should say what happened, why it did or did not clear the alert
-bar, and what the user should do next.
+bar, whether it looks like one holding or the whole portfolio, and what the user
+should do next.
 
 ## Failure Behavior
 

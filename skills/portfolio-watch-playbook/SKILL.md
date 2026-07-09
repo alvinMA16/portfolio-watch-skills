@@ -8,9 +8,9 @@ description: Build reusable Alva Portfolio Watch Playbooks from a user's tickers
 Build a reusable Portfolio Watch Playbook, not a one-off ticker dashboard. Turn
 an incomplete user request into a running Alva workflow that normalizes the
 portfolio, computes attention-ranked signals, renders a status-first Playbook
-that answers whether the user needs to review anything now with chart evidence
-beside or immediately after the answer, and pushes only high-confidence alerts
-that link back to the matching signal.
+that answers `Anything big?` with a plain red/yellow/green result, shows chart
+evidence beside or immediately after the answer, and pushes only
+high-confidence alerts that link back to the matching signal.
 
 ## Build Order
 
@@ -38,20 +38,24 @@ that link back to the matching signal.
 
 ## Product North Star
 
-The first screen must answer: **Do you need to review anything now?** It should
-show, in this order:
+The first screen must answer: **Anything big?** It should show, in this order:
 
-1. Overall status: `Green`, `Yellow`, or `Red`.
-2. Today's answer for each working holding.
-3. Why the user does or does not need to pay attention now.
+1. A red/yellow/green answer in user language:
+   - `Green / 无需关注`: current data shows nothing worth checking.
+   - `Yellow / 留意一下`: something is worth a look, but not urgent.
+   - `Red / 请立即关注`: a major change crossed the interruption bar.
+2. One plain-language answer for each working holding.
+3. Why the status was assigned and whether it looks like a single-holding
+   change or a portfolio-wide problem.
 4. Last checked timestamp and the next watch condition.
 5. The portfolio trend chart as immediate evidence.
 
 On desktop, keep the attention status and trend chart in the same first
 viewport. On mobile, show the attention status first and the chart immediately
 after it. Do not make users start with `Watch`, `Medium`, score numbers,
-repeated quiet rows, or raw indicator tables. Charts remain the evidence layer;
-the primary product answer is whether review is needed now.
+`Portfolio risk elevated`, repeated quiet rows, or raw indicator tables. Charts
+remain the evidence layer; the primary product answer is whether anything big
+happened.
 
 ## Defaults
 
@@ -85,6 +89,10 @@ the primary product answer is whether review is needed now.
   explicitly asks for that separate capability.
 - Do not send heartbeat alerts. Quiet runs must write the skip sentinel in
   `notify/message`.
+- Do not claim the Playbook watches news, earnings, analyst revisions,
+  company-specific catalysts, or holding thesis drivers unless those sources
+  are actually wired into the feed. If they are not wired, show them as
+  explicit blind spots.
 - Do send one explicit setup confirmation after the first successful
   subscription. Treat it as a one-time delivery-chain confirmation, not a
   market alert: the message must say the monitor is on, say it is not a market

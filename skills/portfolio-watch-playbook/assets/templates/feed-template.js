@@ -14,6 +14,7 @@ const CONFIG = {
   sensitivity: "balanced",
   lookbackDays: 260,
   duplicateCooldownDays: 7,
+  redPortfolioImpactPct: 1.5,
   initialSubscriptionConfirmation: true,
   portfolio: [
     { symbol: "REPLACE_SYMBOL", weight: 1 },
@@ -43,7 +44,13 @@ feed.def("portfolio", {
     num("return1m"),
     num("attentionCount"),
     num("highSignalCount"),
+    num("redSignalCount"),
+    num("yellowSignalCount"),
     str("riskState"),
+    str("bigStatusColor"),
+    str("bigStatusLabel"),
+    str("bigStatusBody"),
+    str("portfolioScope"),
     str("missingSymbols"),
     str("missingBenchmarks"),
   ]),
@@ -88,6 +95,11 @@ feed.def("watch", {
     str("volumeState"),
     str("trendState"),
     str("volatilityState"),
+    str("reviewColor"),
+    str("reviewLabel"),
+    str("reviewReason"),
+    str("portfolioScope"),
+    str("confirmationStatus"),
     str("severity"),
     str("state"),
   ]),
@@ -129,6 +141,13 @@ feed.def("signals", {
     str("volumeState"),
     str("trendState"),
     str("volatilityState"),
+    str("reviewColor"),
+    str("reviewLabel"),
+    str("reviewReason"),
+    str("portfolioScope"),
+    str("confirmationStatus"),
+    str("evidencePresent"),
+    str("evidenceMissing"),
     num("portfolioImpactPct"),
     num("metricValue"),
     num("baseline"),
@@ -156,6 +175,11 @@ feed.def("alerts", {
     str("notificationState"),
     str("decisionTitle"),
     str("decisionBody"),
+    str("bigStatusColor"),
+    str("bigStatusLabel"),
+    str("bigStatusBody"),
+    str("portfolioScope"),
+    str("notificationAudit"),
     str("topSignalId"),
     str("topSymbol"),
     str("topSeverity"),
@@ -175,6 +199,14 @@ feed.def("notify", {
   message: makeDoc("Notification", "Push notification sidecar", [
     str("title"),
     str("body"),
+  ]),
+});
+
+feed.def("capability", {
+  status: makeDoc("Watch Capability", "What this Portfolio Watch build checks and does not check", [
+    str("checkedItems"),
+    str("notCheckedItems"),
+    str("decisionLimit"),
   ]),
 });
 
@@ -393,6 +425,67 @@ function volatilityStateLabel(moveVsNormal, rangeRatio20d) {
   return "normal volatility";
 }
 
+function statusLabel(color) {
+  if (color === "red") return "请立即关注";
+  if (color === "yellow") return "留意一下";
+  return "无需关注";
+}
+
+function statusBody(color) {
+  if (color === "red") return "有重大变化，建议现在查看。";
+  if (color === "yellow") return "有变化值得看看，但还不到需要立刻处理。";
+  return "当前没有值得你查看的变化。";
+}
+
+function reviewPriority(color) {
+  if (color === "red") return 3;
+  if (color === "yellow") return 2;
+  return 1;
+}
+
+function driverLabel(driver) {
+  if (driver === "volume") return "成交量";
+  if (driver === "trend") return "趋势";
+  if (driver === "volatility") return "波动率";
+  return "价格";
+}
+
+function reviewColorFor(scored) {
+  if (scored.severity === "high" && scored.portfolioImpactPct >= CONFIG.redPortfolioImpactPct) return "red";
+  if (scored.severity === "high" || scored.severity === "medium") return "yellow";
+  return "green";
+}
+
+function confirmationStatus(scored) {
+  if (scored.volumeState === "volume spike" || scored.volumeState === "volume elevated") {
+    return "成交量有放大，但仍未接入新闻、财报或预期变化确认。";
+  }
+  return "成交量没有明显放大，且本版本未接入新闻、财报或预期变化确认。";
+}
+
+function buildReviewReason(symbol, color, returns, scored) {
+  if (color === "red") {
+    return symbol + " 出现较大异常，且对组合影响较明显，建议现在查看。";
+  }
+  if (color === "yellow") {
+    return symbol + " 今天" + driverLabel(scored.primaryTechnicalDriver) + "有变化值得看看，但还不到需要立刻处理。";
+  }
+  return symbol + " 当前没有值得你查看的变化。";
+}
+
+function buildEvidencePresent(returns, scored, technicalInputs) {
+  return [
+    "1D " + signedPctText(returns.return1d, 2),
+    "组合影响 " + signedPctText(scored.portfolioImpactPct, 2),
+    "成交量 " + ratioText(technicalInputs.volumeRatio20d, 2) + " 20日中位数",
+    "波动 " + ratioText(technicalInputs.moveVsNormal, 2) + " 平常水平",
+  ].join("；");
+}
+
+function buildEvidenceMissing() {
+  return "本版本未接入新闻、财报、分析师预期或公司催化剂，所以不会把单纯技术异动说成持仓逻辑变化。";
+}
+
 function buildTechnicalSummary(symbol, returns, scored, technicalInputs) {
   const posture = scored.severity === "low" ? "technical picture is calm" : "technical picture needs a look";
   return symbol + " " + posture + ": price " + scored.priceState + " at " + signedPctText(returns.return1d, 2) +
@@ -546,6 +639,12 @@ async function buildSymbol(row, benchmarkReturns, startSec, endSec, nowMs, maxWe
     ma20DistancePct,
     ma60DistancePct,
   };
+  const reviewColor = reviewColorFor(scored);
+  const reviewLabel = statusLabel(reviewColor);
+  const reviewReason = buildReviewReason(row.symbol, reviewColor, returns, scored);
+  const confirmation = confirmationStatus(scored);
+  const evidencePresent = buildEvidencePresent(returns, scored, technicalInputs);
+  const evidenceMissing = buildEvidenceMissing();
   const technicalSummary = buildTechnicalSummary(row.symbol, returns, scored, technicalInputs);
 
   const signalId = row.symbol.toLowerCase() + "-" + scored.trigger.type + "-" + String(latest.time_close || nowMs);
@@ -592,6 +691,11 @@ async function buildSymbol(row, benchmarkReturns, startSec, endSec, nowMs, maxWe
     volumeState: scored.volumeState,
     trendState: scored.trendState,
     volatilityState: scored.volatilityState,
+    reviewColor,
+    reviewLabel,
+    reviewReason,
+    portfolioScope: "单只持仓变化",
+    confirmationStatus: confirmation,
     severity: scored.severity,
     state: scored.state,
   };
@@ -612,6 +716,13 @@ async function buildSymbol(row, benchmarkReturns, startSec, endSec, nowMs, maxWe
     volumeState: scored.volumeState,
     trendState: scored.trendState,
     volatilityState: scored.volatilityState,
+    reviewColor,
+    reviewLabel,
+    reviewReason,
+    portfolioScope: "单只持仓变化",
+    confirmationStatus: confirmation,
+    evidencePresent,
+    evidenceMissing,
     portfolioImpactPct: round(scored.portfolioImpactPct, 2),
     metricValue: round(scored.trigger.value, 2),
     baseline: round(scored.trigger.baseline, 2),
@@ -751,6 +862,45 @@ function buildChartSeries(equityRecords, symbolData, benchmarks) {
   return rows;
 }
 
+function buildPortfolioScope(signalRecords, weightedReturn1d) {
+  const active = signalRecords.filter((signal) => signal.reviewColor === "red" || signal.reviewColor === "yellow");
+  const red = active.filter((signal) => signal.reviewColor === "red");
+  const negativeActive = active.filter((signal) => typeof signal.metricValue === "number" && signal.metricValue > 0 && signal.priceState === "abnormal down");
+  if (red.length > 1 || active.length > 1 || (typeof weightedReturn1d === "number" && weightedReturn1d <= -1.5 && negativeActive.length)) {
+    return "多只持仓同时有变化，组合层面需要留意。";
+  }
+  if (active.length === 1) {
+    return "这主要是单只股票的变化，不是整个组合的问题。";
+  }
+  return "没有看到组合层面的异常。";
+}
+
+function topReviewSignal(signalRecords) {
+  const sorted = signalRecords.slice().sort((a, b) => {
+    const priorityDiff = reviewPriority(b.reviewColor) - reviewPriority(a.reviewColor);
+    if (priorityDiff) return priorityDiff;
+    return (b.score || 0) - (a.score || 0);
+  });
+  return sorted.length ? sorted[0] : null;
+}
+
+function buildBigStatus(signalRecords, portfolioScope) {
+  const top = topReviewSignal(signalRecords);
+  const color = top ? top.reviewColor : "green";
+  if (!top || color === "green") {
+    return {
+      color: "green",
+      label: statusLabel("green"),
+      body: statusBody("green"),
+    };
+  }
+  return {
+    color,
+    label: statusLabel(color),
+    body: top.reviewReason + " " + portfolioScope,
+  };
+}
+
 function flattenRows(rows) {
   if (!Array.isArray(rows)) return [];
   const out = [];
@@ -788,7 +938,7 @@ function duplicateKeys(priorAlerts, nowMs) {
 }
 
 function buildAlertRows(signals, nowMs, latestAsOf, priorAlerts) {
-  const high = signals.filter((signal) => signal.severity === "high").sort((a, b) => b.score - a.score);
+  const high = signals.filter((signal) => signal.reviewColor === "red").sort((a, b) => b.score - a.score);
   const seen = duplicateKeys(priorAlerts, nowMs);
   if (!high.length) {
     return [{
@@ -796,8 +946,8 @@ function buildAlertRows(signals, nowMs, latestAsOf, priorAlerts) {
       signalId: "quiet-" + nowMs,
       symbol: "PORTFOLIO",
       severity: "quiet",
-      title: "No high-severity Portfolio Watch alert",
-      body: "No high-severity signal fired in this run.",
+      title: "没有达到立即提醒级别",
+      body: "当前没有值得立即通知你的变化。",
       portfolioImpactPct: 0,
       triggerType: "quiet",
       asOf: latestAsOf,
@@ -813,8 +963,8 @@ function buildAlertRows(signals, nowMs, latestAsOf, priorAlerts) {
       signalId: signal.signalId,
       symbol: signal.symbol,
       severity: signal.severity,
-      title: signal.title,
-      body: signal.technicalSummary || (signal.reason + " " + signal.evidence),
+      title: signal.reviewLabel + "：" + signal.symbol,
+      body: signal.reviewReason + " " + signal.portfolioScope,
       portfolioImpactPct: signal.portfolioImpactPct,
       triggerType: signal.triggerType,
       asOf: signal.asOf,
@@ -828,13 +978,12 @@ function buildAlertRows(signals, nowMs, latestAsOf, priorAlerts) {
 function quietReasonFor(top, duplicateHigh) {
   if (duplicateHigh) return "duplicate";
   if (!top) return "no_signal";
-  return top.severity === "medium" ? "below_threshold" : "no_signal";
+  return top.reviewColor === "yellow" ? "below_threshold" : "no_signal";
 }
 
-function buildDecision(signals, alertRows, nowMs, latestAsOf, setupConfirmation) {
+function buildDecision(signals, alertRows, nowMs, latestAsOf, setupConfirmation, bigStatus, portfolioScope) {
   const thresholds = sensitivityThresholds();
-  const sortedSignals = signals.slice().sort((a, b) => b.score - a.score);
-  const top = sortedSignals.length ? sortedSignals[0] : null;
+  const top = topReviewSignal(signals);
   const actionable = alertRows.filter((row) => row.severity === "high" && row.deliveryState === "candidate");
   const duplicateHigh = alertRows.find((row) => row.severity === "high" && row.deliveryState === "quiet");
   const anchor = actionable.length
@@ -848,14 +997,19 @@ function buildDecision(signals, alertRows, nowMs, latestAsOf, setupConfirmation)
     return {
       date: nowMs,
       notificationState: "sent",
-      decisionTitle: "Ping sent for " + alert.symbol,
+      decisionTitle: "请立即关注",
       decisionBody: alert.body,
+      bigStatusColor: "red",
+      bigStatusLabel: statusLabel("red"),
+      bigStatusBody: alert.body,
+      portfolioScope,
+      notificationAudit: "已发送通知，因为这条变化达到立即提醒线，且不是重复提醒。",
       topSignalId: alert.signalId,
       topSymbol: alert.symbol,
       topSeverity: alert.severity,
       quietReason: "",
       nextAction: "Open " + alert.symbol + " detail.",
-      nextTrigger: "Already cleared the high-severity alert bar.",
+      nextTrigger: "已经达到请立即关注级别。",
       score: top ? top.score : null,
       threshold: thresholds.high,
       portfolioImpactPct: alert.portfolioImpactPct,
@@ -869,14 +1023,19 @@ function buildDecision(signals, alertRows, nowMs, latestAsOf, setupConfirmation)
     return {
       date: nowMs,
       notificationState: "setup",
-      decisionTitle: "Setup confirmation sent",
-      decisionBody: "Portfolio Watch is on. This is a one-time delivery confirmation, not a market signal.",
+      decisionTitle: "监控已开启",
+      decisionBody: "Portfolio Watch 已开启。这只是一次设置确认，不是市场信号。",
+      bigStatusColor: bigStatus.color,
+      bigStatusLabel: bigStatus.label,
+      bigStatusBody: bigStatus.body,
+      portfolioScope,
+      notificationAudit: "已发送一次设置确认，用来确认通知链路可用；后续无大事时不会发心跳通知。",
       topSignalId: top ? top.signalId : "",
       topSymbol: top ? top.symbol : "PORTFOLIO",
       topSeverity: top ? top.severity : "quiet",
       quietReason: quietReasonFor(top, duplicateHigh),
       nextAction: top ? "Open " + top.symbol + " detail if you want context." : "No action needed.",
-      nextTrigger: "Future pings require score >= " + String(thresholds.high) + " and a non-duplicate high-severity signal.",
+      nextTrigger: "后续通知需要出现请立即关注级别的变化，且不能是重复提醒。",
       score: top ? top.score : null,
       threshold: thresholds.high,
       portfolioImpactPct: top ? top.portfolioImpactPct : 0,
@@ -890,14 +1049,19 @@ function buildDecision(signals, alertRows, nowMs, latestAsOf, setupConfirmation)
     return {
       date: nowMs,
       notificationState: "quiet",
-      decisionTitle: "No repeat ping",
-      decisionBody: duplicateHigh.symbol + " still has a high-severity signal, but this dedup key was already alerted inside the cool-down window.",
+      decisionTitle: "不重复提醒",
+      decisionBody: duplicateHigh.symbol + " 仍然需要关注，但同一类提醒还在冷却期内。",
+      bigStatusColor: "red",
+      bigStatusLabel: statusLabel("red"),
+      bigStatusBody: duplicateHigh.symbol + " 仍然需要关注，但这不是新的提醒。",
+      portfolioScope,
+      notificationAudit: "未发送新通知，因为同一类提醒已经在冷却期内发过。",
       topSignalId: duplicateHigh.signalId,
       topSymbol: duplicateHigh.symbol,
       topSeverity: duplicateHigh.severity,
       quietReason: "duplicate",
       nextAction: "Open " + duplicateHigh.symbol + " detail if you want context.",
-      nextTrigger: "A new high-severity signal outside the cool-down window can notify again.",
+      nextTrigger: "冷却期外出现新的请立即关注级别变化时，才会再次通知。",
       score: top ? top.score : null,
       threshold: thresholds.high,
       portfolioImpactPct: duplicateHigh.portfolioImpactPct,
@@ -908,18 +1072,27 @@ function buildDecision(signals, alertRows, nowMs, latestAsOf, setupConfirmation)
   }
 
   if (top) {
-    const state = top.severity === "medium" ? "watch" : "quiet";
+    const state = top.reviewColor === "yellow" ? "watch" : "quiet";
     return {
       date: nowMs,
       notificationState: state,
-      decisionTitle: "No ping sent",
-      decisionBody: (top.technicalSummary || top.evidence) + " It stayed below the high-severity alert bar.",
+      decisionTitle: bigStatus.label,
+      decisionBody: top.reviewColor === "yellow"
+        ? top.reviewReason + " " + portfolioScope
+        : statusBody("green"),
+      bigStatusColor: bigStatus.color,
+      bigStatusLabel: bigStatus.label,
+      bigStatusBody: bigStatus.body,
+      portfolioScope,
+      notificationAudit: top.reviewColor === "yellow"
+        ? "未发送通知，因为这条变化值得看，但还不到需要立刻处理。"
+        : "未发送通知，因为当前没有值得你查看的变化。",
       topSignalId: top.signalId,
       topSymbol: top.symbol,
       topSeverity: top.severity,
-      quietReason: top.severity === "medium" ? "below_threshold" : "no_signal",
-      nextAction: top.severity === "medium" ? "Open " + top.symbol + " detail if you want context." : "No action needed.",
-      nextTrigger: "Next ping requires score >= " + String(thresholds.high) + " and a non-duplicate high-severity signal.",
+      quietReason: top.reviewColor === "yellow" ? "below_threshold" : "no_signal",
+      nextAction: top.reviewColor === "yellow" ? "今天有空可以看一眼 " + top.symbol + "。" : "无需操作。",
+      nextTrigger: "下一次通知需要出现请立即关注级别的变化，且不能是重复提醒。",
       score: top.score,
       threshold: thresholds.high,
       portfolioImpactPct: top.portfolioImpactPct,
@@ -932,14 +1105,19 @@ function buildDecision(signals, alertRows, nowMs, latestAsOf, setupConfirmation)
   return {
     date: nowMs,
     notificationState: "quiet",
-    decisionTitle: "No ping sent",
-    decisionBody: "No attention signal was generated in this run.",
+    decisionTitle: statusLabel("green"),
+    decisionBody: statusBody("green"),
+    bigStatusColor: "green",
+    bigStatusLabel: statusLabel("green"),
+    bigStatusBody: statusBody("green"),
+    portfolioScope,
+    notificationAudit: "未发送通知，因为当前没有值得你查看的变化。",
     topSignalId: "",
     topSymbol: "PORTFOLIO",
     topSeverity: "quiet",
     quietReason: "no_signal",
-    nextAction: "No action needed.",
-    nextTrigger: "Next ping requires a high-severity signal.",
+    nextAction: "无需操作。",
+    nextTrigger: "下一次通知需要出现请立即关注级别的变化。",
     score: null,
     threshold: thresholds.high,
     portfolioImpactPct: 0,
@@ -957,11 +1135,11 @@ function buildNotify(alertRows, decision, setupConfirmation) {
         ? CONFIG.playbookUrl
         : "";
       return {
-        title: "Portfolio Watch enabled",
+        title: "Portfolio Watch 已开启",
         body:
-          "Portfolio Watch is on. This is a one-time setup confirmation, not a market signal.\n\n" +
-          "Current decision: " + (decision.decisionTitle || "No material signal") + ".\n\n" +
-          (url ? "[Open Playbook](" + url + ")" : "Open the Playbook to inspect the current state."),
+          "Portfolio Watch 已开启。这只是一次设置确认，不是市场信号。\n\n" +
+          "当前判断：" + (decision.decisionTitle || "无需关注") + "。\n\n" +
+          (url ? "[打开 Playbook](" + url + ")" : "打开 Playbook 查看当前状态。"),
       };
     }
     return {
@@ -970,17 +1148,17 @@ function buildNotify(alertRows, decision, setupConfirmation) {
     };
   }
   const top = actionable[0];
-  const extra = actionable.length > 1 ? "\n\n+" + String(actionable.length - 1) + " more high-severity signals in the Playbook." : "";
+  const extra = actionable.length > 1 ? "\n\nPlaybook 里还有 " + String(actionable.length - 1) + " 条请立即关注级别的变化。" : "";
   const url = CONFIG.playbookUrl && CONFIG.playbookUrl.indexOf("REPLACE_") < 0
     ? CONFIG.playbookUrl + "#" + top.deepLinkAnchor
     : "#" + top.deepLinkAnchor;
   return {
-    title: "Portfolio Watch: " + top.symbol,
+    title: "Portfolio Watch：" + top.symbol,
     body:
       "**" + top.title + "**\n\n" +
       top.body + "\n\n" +
-      "Portfolio impact: " + round(top.portfolioImpactPct, 2) + "%\n\n" +
-      "[Open signal](" + url + ")" +
+      "组合影响：" + round(top.portfolioImpactPct, 2) + "%\n\n" +
+      "[打开详情](" + url + ")" +
       extra,
   };
 }
@@ -1017,14 +1195,27 @@ function buildNotify(alertRows, decision, setupConfirmation) {
   const equityRecords = buildEquity(symbolData, primaryBenchmark ? primaryBenchmark.priceRecords : null);
   const chartRecords = buildChartSeries(equityRecords, symbolData, benchmarks);
   const latestEquity = equityRecords[equityRecords.length - 1];
-  const highSignalCount = signalRecords.filter((signal) => signal.severity === "high").length;
-  const mediumSignalCount = signalRecords.filter((signal) => signal.severity === "medium").length;
   const latestAsOf = assetRecords.map((record) => record.asOf).sort().slice(-1)[0];
 
   const weightedReturn = (key) => round(symbolData.reduce((sum, item) => {
     const value = item.assetRecord[key];
     return sum + item.weight * (typeof value === "number" && Number.isFinite(value) ? value : 0);
   }, 0), 2);
+  const weightedReturn1d = weightedReturn("return1d");
+  const weightedReturn1w = weightedReturn("return1w");
+  const weightedReturn1m = weightedReturn("return1m");
+  const portfolioScope = buildPortfolioScope(signalRecords, weightedReturn1d);
+  signalRecords.forEach((record) => {
+    record.portfolioScope = portfolioScope;
+  });
+  assetRecords.forEach((record) => {
+    record.portfolioScope = portfolioScope;
+  });
+  const highSignalCount = signalRecords.filter((signal) => signal.severity === "high").length;
+  const mediumSignalCount = signalRecords.filter((signal) => signal.severity === "medium").length;
+  const redSignalCount = signalRecords.filter((signal) => signal.reviewColor === "red").length;
+  const yellowSignalCount = signalRecords.filter((signal) => signal.reviewColor === "yellow").length;
+  const bigStatus = buildBigStatus(signalRecords, portfolioScope);
 
   const summaryRecord = {
     date: nowMs,
@@ -1037,14 +1228,26 @@ function buildNotify(alertRows, decision, setupConfirmation) {
     asOf: latestAsOf,
     tickerCount: symbolData.length,
     portfolioIndex: latestEquity.portfolioIndex,
-    return1d: weightedReturn("return1d"),
-    return1w: weightedReturn("return1w"),
-    return1m: weightedReturn("return1m"),
+    return1d: weightedReturn1d,
+    return1w: weightedReturn1w,
+    return1m: weightedReturn1m,
     attentionCount: highSignalCount + mediumSignalCount,
     highSignalCount,
-    riskState: highSignalCount ? "Alert" : mediumSignalCount ? "Watch" : "Normal",
+    redSignalCount,
+    yellowSignalCount,
+    riskState: redSignalCount ? "Alert" : yellowSignalCount ? "Watch" : "Normal",
+    bigStatusColor: bigStatus.color,
+    bigStatusLabel: bigStatus.label,
+    bigStatusBody: bigStatus.body,
+    portfolioScope,
     missingSymbols: missing.join("; "),
     missingBenchmarks: benchmarkSeries.missing.join("; "),
+  };
+  const capabilityRecord = {
+    date: nowMs,
+    checkedItems: "价格波动、成交量、趋势、波动率、组合影响、SPY/QQQ 对比",
+    notCheckedItems: "新闻、财报、分析师预期、公司催化剂",
+    decisionLimit: "本版本只用已接入的数据判断是否需要关注；不会把未接入的新闻、预期或催化剂当成结论。",
   };
 
   let notifyState = "quiet";
@@ -1059,7 +1262,7 @@ function buildNotify(alertRows, decision, setupConfirmation) {
       CONFIG.initialSubscriptionConfirmation &&
       runArgs.initialConfirmation === true &&
       !setupConfirmationAlreadySent;
-    const decision = buildDecision(signalRecords, alertRows, nowMs, latestAsOf, setupConfirmation);
+    const decision = buildDecision(signalRecords, alertRows, nowMs, latestAsOf, setupConfirmation, bigStatus, portfolioScope);
     const notify = buildNotify(alertRows, decision, setupConfirmation);
     notifyState = notify.body === "<|SKIP_NOTIFICATION|>" ? "quiet" : "message";
     setupConfirmationState = setupConfirmation ? "sent_or_replaced_by_market_alert" : setupConfirmationAlreadySent ? "already_sent" : "not_requested";
@@ -1073,6 +1276,7 @@ function buildNotify(alertRows, decision, setupConfirmation) {
     await ctx.self.ts("signals", "events").append(signalRecords);
     await ctx.self.ts("alerts", "events").append(alertRows);
     await ctx.self.ts("alerts", "decision").append([decision]);
+    await ctx.self.ts("capability", "status").append([capabilityRecord]);
     await ctx.self.ts("notify", "message").append([{ date: nowMs, title: notify.title, body: notify.body }]);
     if (setupConfirmation && notify.body !== "<|SKIP_NOTIFICATION|>") {
       await ctx.kv.put("initialSubscriptionConfirmationSent", String(nowMs));

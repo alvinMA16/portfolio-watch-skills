@@ -1,8 +1,9 @@
 # REPLACE_DISPLAY_NAME
 
 This Playbook watches `REPLACE_UNIVERSE` as a portfolio attention surface. It is
-designed to answer: do you need to review anything now, which holdings deserve
-attention, why, and whether the change is important enough to notify the user.
+designed to answer `Anything big?` with a simple red/yellow/green result, which
+holdings deserve attention, why, and whether the change is important enough to
+notify the user.
 
 ## Inputs and assumptions
 
@@ -28,20 +29,22 @@ Replace this section with only sources actually called and deployed:
 - Arrays stock market metrics for RSI, moving averages, P/E, and market cap
   when available.
 - Arrays company detail for company name, sector, and industry.
-- Optional validated sources for news, earnings, analyst revisions, options, or
-  social signals when explicitly wired.
+- This generated version should list news, earnings, analyst revisions,
+  company catalysts, options, or social signals only when they are explicitly
+  wired.
 
 The Playbook reads feed outputs at runtime. Financial values are not embedded in
 the HTML.
 
 ## First-screen answer
 
-The first screen starts with `Portfolio Attention Status`, which answers:
+The first screen starts with `Anything big?`, which answers:
 
-- Overall status: `Green`, `Yellow`, or `Red`.
-- Today's answer for each working holding: `Review now`, `Digest-worthy`,
-  `Logged only`, or `No review needed`.
-- Why the signal did or did not require attention.
+- `Green / 无需关注`: current data shows nothing worth checking.
+- `Yellow / 留意一下`: something is worth a look, but not urgent.
+- `Red / 请立即关注`: a major change crossed the interruption bar.
+- Why the status was assigned.
+- Whether the issue looks like one holding or the whole portfolio.
 - Last checked timestamp.
 - Next watch condition.
 
@@ -90,25 +93,24 @@ qualify the move; a volume-only event should not become high severity by itself.
 
 The Playbook separates two decisions:
 
-- Important to inspect: a signal belongs in `What matters now`.
-- Worth alerting: a signal cleared the higher bar for phone interruption.
+- Worth seeing in the Playbook: usually `Yellow / 留意一下`.
+- Worth interrupting the user: only `Red / 请立即关注`.
 
-A medium signal can be useful context without being pushed to the user.
+A yellow signal can be useful context without being pushed to the user.
 
-## Signal bands
+## Status bands
 
-- High: material portfolio impact, abnormal move, fresh data, clear reason, and
-  no recent duplicate. Eligible for push notification.
-- Medium: noteworthy but missing one high-severity gate. Displayed in the
-  Playbook, not pushed.
-- Low: context only. Displayed in the holdings and detail views, not pushed.
+- Red / 请立即关注: material enough to interrupt, fresh, explainable, and not a
+  duplicate.
+- Yellow / 留意一下: worth reading in the Playbook, but not urgent.
+- Green / 无需关注: no meaningful change in the wired data.
 
 ## Alert policy
 
 Alerts are quiet by default.
 
-- Only high-severity signals are pushed.
-- Medium and low signals stay in the Playbook.
+- Only red signals are pushed.
+- Yellow and green signals stay in the Playbook.
 - Quiet runs write `<|SKIP_NOTIFICATION|>` instead of sending a heartbeat.
 - After the first successful subscription, the automation sends one setup
   confirmation to prove delivery works. This is not a market signal and should
@@ -136,18 +138,15 @@ thresholds, or repeated quiet audit rows.
 
 The Playbook contains:
 
-- Portfolio Attention Status: the first-screen answer to whether review is
-  needed now.
+- Anything Big Status: the first-screen answer to whether anything needs
+  attention.
 - Portfolio Trend: chart evidence for portfolio, holdings, SPY, and QQQ when
   available.
-- What Matters Now: ranked attention events that deserve inspection.
-- Technical States: price, volume, trend, and volatility labels attached to
-  each attention event.
-- Signal Detail: evidence and reasoning for each signal.
+- Today queue: ranked events that deserve inspection.
+- Evidence explanation: what was observed and what is not wired.
 - Holdings State: all symbols, including non-alerting names.
-- Alert History: recent high-severity or quiet alert audit rows.
-- Alert Decision: the plain-language notification decision for the current
-  run.
+- Notification audit: why a ping was or was not sent.
+- Current capability: what the Playbook checks and what it does not check.
 
 ## Blind spots
 

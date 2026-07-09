@@ -1,35 +1,35 @@
 # UI Contract
 
 Build the Playbook as a status-first portfolio watch surface, not a generic
-stock table or notification log. The first viewport should answer: do you need
-to review anything now, what changed by holding, why that is or is not worth
-attention, when the monitor last checked, what it is watching next, and what
-chart evidence supports the answer.
+stock table or notification log. The first viewport should answer `Anything
+big?` with a red/yellow/green result, what changed by holding, why that is or is
+not worth attention, whether it is a single-holding or portfolio-wide issue,
+when the monitor last checked, what it is watching next, and what chart
+evidence supports the answer.
 
 ## Required Views
 
-## Portfolio Attention Status
+## Anything Big Status
 
 This is the first useful region in the iframe. It reads `alerts/decision`,
 `signals/events`, `watch/assets`, and `portfolio/summary`.
 
 Show a compact decision surface:
 
-- Main question: `Do you need to review anything now?`
-- Overall status:
-  - `Green`: `No urgent review needed`.
-  - `Yellow`: `Digest-worthy changes`.
-  - `Red`: `Review trigger fired`.
-- Today's answer: one row per working holding, such as `Review now`,
-  `Digest-worthy`, `Logged only`, or `No review needed`.
-- Why: one evidence-backed sentence from the current decision.
-- Last checked: latest source timestamp.
-- Next watch: the next condition to monitor. Do not invent future catalysts;
-  if no event source is wired, write a condition-based trigger.
+- Main question: `Anything big?`
+- Status:
+  - `Green / 无需关注`: 当前没有值得你查看的变化。
+  - `Yellow / 留意一下`: 有变化值得看看，但还不到需要立刻处理。
+  - `Red / 请立即关注`: 有重大变化，建议现在查看。
+- Holding answers: one row per working holding using the same labels.
+- Why: one ordinary-language sentence from `alerts/decision`.
+- Scope: whether this looks like one holding or the whole portfolio.
+- Last checked and next watch condition. Do not invent future catalysts; if no
+  event source is wired, write a condition-based trigger.
 
 On desktop, place this status panel beside the portfolio trend chart. On mobile,
 show this panel first and the chart immediately after it. Do not let KPI cards,
-alert history, or raw scores crowd out this answer.
+alert history, raw scores, or internal mechanism words crowd out this answer.
 
 ## Portfolio Trend
 
@@ -61,25 +61,25 @@ scattering them around the chart. Time ranges should filter `chart/series` in
 the browser and rebase each visible line to 100 at the start of the selected
 range. Make the next section visible below the fold when possible.
 
-## What Matters Now
+## 今天要看什么
 
-Show `signals/events` sorted by user attention, not by alert eligibility alone.
+Show `signals/events` sorted by the red/yellow/green user result, not by raw
+score or alert eligibility alone.
 Each row/card must include:
 
 - Symbol and title.
-- Severity.
-- Short reason.
-- Four technical state chips: price, volume, trend, and volatility.
-- Technical summary in plain language.
+- User status label: `无需关注`, `留意一下`, or `请立即关注`.
+- Short reason in ordinary language.
+- Four evidence chips: price, volume, trend, and volatility.
 - Portfolio impact.
 - Evidence summary.
 - Link target matching `deepLinkAnchor`.
-- Whether the signal is worth inspecting only, or also cleared the alert bar.
+- Whether the signal is worth checking today or now.
 
-Medium signals can be important to inspect without being worth a phone alert.
+Yellow signals can be important to inspect without being worth a phone alert.
 Use plain sentences such as:
 
-`GOOGL moved more than usual, but portfolio impact stayed below the alert bar.`
+`TSLA 有变化值得看看，但还不到需要立刻处理。`
 
 ## Ping Status
 
@@ -87,7 +87,7 @@ Show `alerts/decision` through the Portfolio Attention Status panel, not as a
 separate notification log:
 
 - Notification state: `quiet`, `watch`, `sent`, or `setup`.
-- Human conclusion, such as `No ping sent` or `Ping sent for GOOGL`.
+- Human conclusion, such as `无需关注`, `留意一下`, or `请立即关注`.
 - Reason in one or two evidence-backed sentences.
 - Next action, such as `No action needed` or `Open GOOGL detail`.
 - Link target matching `deepLinkAnchor` when a signal exists.
@@ -96,8 +96,8 @@ When state is `setup`, make clear that the user received a one-time
 subscription confirmation and that no market signal is being claimed.
 
 Do not make the user infer notification behavior from score, severity,
-thresholds, or repeated quiet rows. Also do not imply that "important to inspect"
-always means "worth alerting."
+thresholds, or repeated quiet rows. Also do not imply that "留意一下" always
+means "worth alerting."
 
 ## Overview
 
@@ -109,7 +109,7 @@ Show the current portfolio state:
 - High and medium signal counts.
 - Weighting and benchmark assumptions.
 
-## Signal Detail
+## 为什么这么判断
 
 Each signal must have a stable anchor such as `#signal-<signalId>` so alerts can
 open the matching detail. The detail should show:
@@ -117,6 +117,9 @@ open the matching detail. The detail should show:
 - What happened.
 - Why it is abnormal across price, volume, trend, and volatility.
 - Why it matters to the portfolio.
+- Evidence present.
+- Evidence missing, especially unwired sources such as news, earnings, analyst
+  revisions, company catalysts, or thesis drivers.
 - Source timestamp.
 - Data blind spots.
 
@@ -127,21 +130,32 @@ Show all working symbols, including non-alerting names:
 - Symbol, company, weight.
 - Close, 1D, 1W, 1M.
 - Relative return.
-- Technical state summary, including price, volume, trend, and volatility.
-- Technical score or primary technical driver as supporting context.
-- Attention score or severity band.
+- User status label.
+- Plain-language reason.
+- Short evidence state, including price and volume.
 
 ## History / Charts
 
 Use `chart/series` as the source of truth for normalized portfolio, benchmark,
 and constituent paths. Use runtime feed reads only. Do not inline chart data.
 
-## Alert History
+## 为什么没通知你
 
 Show latest `alerts/events` records or a quiet state. Collapse repeated quiet
 runs into one summary such as `Last 3 runs quiet`; do not render multiple
 quiet rows as separate alert cards. This ties phone alerts back to the
 interface without creating noise.
+
+## 当前在看什么
+
+Show `capability/status` so the Playbook is honest about its scope:
+
+- Already wired inputs, such as price, volume, trend, volatility, portfolio
+  impact, and SPY/QQQ context.
+- Not wired inputs, such as news, earnings, analyst revisions, company
+  catalysts, or thesis drivers.
+- A short limitation statement that the Playbook does not draw conclusions from
+  unwired data.
 
 ## Interaction Rules
 
@@ -153,5 +167,7 @@ interface without creating noise.
   not let KPI cards or alert history crowd out the attention answer.
 - Make empty and partial-data states honest: show missing symbols and blind
   spots instead of placeholder values.
+- Do not show `Portfolio risk elevated`, `review candidate`, `gate`, raw
+  severity, or score bands as the first-screen answer.
 - Follow the user's preferred language for visible UI copy. Keep ticker symbols
   and market abbreviations unchanged.

@@ -36,7 +36,8 @@ separate local checkout of the official Alva Skill.
   `feed-lifecycle.md`, and `deployment.md`.
 - Build outputs from `data-contract.md`: `portfolio/summary`,
   `portfolio/equity`, `watch/assets`, `history/prices`, `chart/series`,
-  `signals/events`, `alerts/events`, `alerts/decision`, and `notify/message`.
+  `signals/events`, `alerts/events`, `alerts/decision`, `capability/status`,
+  and `notify/message`.
 - Run the exact ALFS script with `alva run --entry-path ...` after every
   meaningful change. Do not pass `initialConfirmation` during pre-subscription
   test runs; that mode is reserved for the first subscribed automation run.
@@ -50,12 +51,15 @@ separate local checkout of the official Alva Skill.
 
 - Read `alva-platform/playbook-creation.md`, `design.md`,
   `design-widgets.md`, and `user-facing-prose.md`.
-- Follow `ui-contract.md`: Portfolio Attention Status, portfolio trend, what
-  matters now, overview, signal detail, holdings, and alert history.
-- The first viewport must answer whether the user needs to review anything now
-  and show the portfolio trend chart as immediate evidence, with usable
+- Follow `ui-contract.md`: Anything Big status, portfolio trend, today queue,
+  evidence explanation, holdings, notification audit, and capability status.
+- The first viewport must answer `Anything big?` with `无需关注`, `留意一下`, or
+  `请立即关注`, and show the portfolio trend chart as immediate evidence, with usable
   Portfolio / Tickers / Compare controls and SPY / QQQ benchmark toggles when
   data exists.
+- The page must not claim news, earnings, analyst revisions, catalysts, or
+  thesis drivers are monitored unless the feed actually writes those sourced
+  outputs. Show unwired sources in `当前在看什么`.
 - HTML must use `AlvaToolkit.AlvaClient` for runtime reads.
 - Write HTML and README to `~/playbooks/<name>/`.
 - Draft with `alva release playbook-draft`.
@@ -71,6 +75,8 @@ separate local checkout of the official Alva Skill.
   or `<|SKIP_NOTIFICATION|>`.
 - Confirm `alerts/decision/@last/1` is fresh and explains the current
   notification decision.
+- Confirm `capability/status/@last/1` is fresh and states what is wired versus
+  not wired.
 - Subscribe with:
   - `alva subscriptions subscribe-playbook --username <owner> --name <playbook>`
   - or `alva subscriptions subscribe-feed --username <owner> --name <feed>`
@@ -80,7 +86,7 @@ separate local checkout of the official Alva Skill.
     `{"initialConfirmation":true}`.
   - Trigger the deployed automation once and poll until it completes.
   - Confirm `notification-history` shows a sent setup confirmation, or a real
-    high-severity market alert if one fired on that run.
+    red market alert if one fired on that run.
   - Clear the deployed automation args back to `{}` after the confirmation run.
   - Confirm a later quiet run writes `<|SKIP_NOTIFICATION|>` and does not send
     another setup confirmation.
