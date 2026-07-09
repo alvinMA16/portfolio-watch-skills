@@ -228,6 +228,11 @@ Required fields:
 - `deepLinkAnchor`
 - `cooldownDays`
 
+For `notificationState: sent`, `deepLinkAnchor` must match a stable DOM id in
+the Playbook, and the matching `notify/message.body` must include a Markdown
+link to the canonical Playbook URL with `#${deepLinkAnchor}` appended. This is a
+required data contract, not optional display copy.
+
 Rows with `notificationState` of `sent`, `setup`, or `test` represent
 notifications intentionally emitted through the official feed/automation path.
 The UI should label them as `正式通知`, `设置确认`, or `测试通知` and show the row

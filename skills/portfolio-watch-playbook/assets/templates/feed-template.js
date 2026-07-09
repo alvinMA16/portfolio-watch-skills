@@ -2006,16 +2006,17 @@ function buildNotify(alertRows, decision, setupConfirmation, testNotification) {
   }
   const top = actionable[0];
   const extra = actionable.length > 1 ? "\n\nPlaybook 里还有 " + String(actionable.length - 1) + " 条请立即关注级别的变化。" : "";
-  const url = CONFIG.playbookUrl && CONFIG.playbookUrl.indexOf("REPLACE_") < 0
-    ? CONFIG.playbookUrl + "#" + top.deepLinkAnchor
-    : "#" + top.deepLinkAnchor;
+  if (!CONFIG.playbookUrl || CONFIG.playbookUrl.indexOf("REPLACE_") >= 0) {
+    throw new Error("Formal notifications require CONFIG.playbookUrl so deep links can open the matching Playbook evidence row.");
+  }
+  const url = CONFIG.playbookUrl + "#" + top.deepLinkAnchor;
   return {
     title: "Portfolio Watch：" + top.symbol,
     body:
       "**" + top.title + "**\n\n" +
       top.body + "\n\n" +
       "组合影响：" + round(top.portfolioImpactPct, 2) + "%\n\n" +
-      "[打开详情](" + url + ")" +
+      "[打开 " + top.symbol + " 证据明细](" + url + ")" +
       extra,
   };
 }

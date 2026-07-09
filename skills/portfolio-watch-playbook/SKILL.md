@@ -114,6 +114,12 @@ deterministic fallback prose if the model output is unavailable.
   explicitly asks for that separate capability.
 - Do not send heartbeat alerts. Quiet runs must write the skip sentinel in
   `notify/message`.
+- Do include a clickable deep link in every formal `请立即关注` notification.
+  The link must be in `notify/message.body` as Markdown and must use the
+  canonical Playbook URL plus the matching `deepLinkAnchor`, for example
+  `[打开 NVDA 证据明细](https://alva.ai/u/<owner>/playbooks/<name>#signal-...)`.
+  Do not send formal notifications with a homepage-only link, a relative
+  `#anchor`, or no link.
 - Do not claim the Playbook watches news, earnings, analyst revisions,
   company-specific catalysts, or holding thesis drivers unless those sources
   are actually wired into the feed and succeeded for the current run. If they

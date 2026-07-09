@@ -82,6 +82,9 @@ Show `alerts/decision` after `证据明细`, not before it:
 - Reason in one or two evidence-backed sentences.
 - Next action, such as `No action needed` or `Open GOOGL detail`.
 - Link target matching `deepLinkAnchor` when a signal exists.
+- For every formal notification row (`notificationState: sent`), the Playbook
+  must expose a DOM anchor whose id equals `deepLinkAnchor`, and opening the
+  canonical URL with `#deepLinkAnchor` must scroll to that evidence row.
 - A compact "最近发出的通知" history from recent `alerts/decision` rows with
   state `sent`, `setup`, or `test`. Each row must show type (`正式通知`,
   `设置确认`, or `测试通知`) and sent time. Do not query Alva notification-history
@@ -112,8 +115,9 @@ on the user's Alva notification channel.
 
 ## 证据明细
 
-Each signal must have a stable anchor such as `#signal-<signalId>` so alerts can
-open the matching detail. Render this section as a table, not a card grid. The
+Each signal must have a stable anchor such as `id="signal-<signalId>"` so formal
+notifications can open the matching detail through the canonical Playbook URL
+plus `#signal-<signalId>`. Render this section as a table, not a card grid. The
 table should show:
 
 - What happened.

@@ -109,6 +109,9 @@ separate local checkout of the official Alva Skill.
 - Confirm `alerts/decision/@last/40` includes labeled `sent`, `setup`, or `test`
   rows when notifications have been emitted, and that the Playbook renders their
   type and sent time.
+- For any `sent` row, confirm `notify/message/@last/1` includes a Markdown link
+  whose URL is the canonical Playbook URL plus `#<deepLinkAnchor>`, and confirm
+  the released HTML has a matching DOM id for that anchor.
 - Confirm `capability/status/@last/1` is fresh and states what is wired versus
   not wired.
 - Confirm `context/events/@last/20` is fresh when event context is enabled, or

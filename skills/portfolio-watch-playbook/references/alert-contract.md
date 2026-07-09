@@ -63,8 +63,12 @@ Body requirements:
 - Say why it matters.
 - Include the affected symbol.
 - Include portfolio impact when available.
-- Link to the canonical Playbook URL with a fragment matching
-  `deepLinkAnchor`, such as `#signal-<signalId>`.
+- Formal `sent` notifications must include a Markdown link to the canonical
+  Playbook URL with a fragment matching `deepLinkAnchor`, such as
+  `[打开 TSLA 证据明细](https://alva.ai/u/<owner>/playbooks/<name>#signal-<signalId>)`.
+  This is the required click path from the external notification back into the
+  Playbook. Do not use a homepage-only link, a relative `#anchor`, or a plain
+  text URL for formal notifications.
 - Keep it short enough for IM delivery.
 
 Setup confirmation body requirements:
