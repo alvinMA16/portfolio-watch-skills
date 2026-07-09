@@ -119,6 +119,29 @@
         color: var(--text-n5);
         white-space: nowrap;
       }
+      .notification-title {
+        align-items: center;
+      }
+      .notification-check-button {
+        flex: 0 0 auto;
+        min-height: 30px;
+        padding: 0 var(--spacing-s);
+        border: 1px solid var(--line-l05);
+        border-radius: var(--radius-ct-s);
+        background: var(--b0-page);
+        color: var(--text-n8);
+        font-size: 12px;
+        line-height: 20px;
+        cursor: pointer;
+      }
+      .notification-check-button:hover {
+        border-color: var(--line-l9);
+        color: var(--text-n9);
+      }
+      .notification-check-button:disabled {
+        cursor: wait;
+        color: var(--text-n5);
+      }
       .visual-stage {
         display: block;
         margin-bottom: var(--spacing-xl);
@@ -186,6 +209,7 @@
       }
       .segment:focus-visible,
       .decision-action:focus-visible,
+      .notification-check-button:focus-visible,
       .checkbox-pill input:focus-visible {
         outline: 2px solid var(--main-m1);
         outline-offset: 2px;
@@ -496,6 +520,79 @@
         color: inherit;
         text-decoration: none;
       }
+      .notification-rule {
+        margin-top: var(--spacing-s);
+        padding-top: var(--spacing-s);
+        border-top: 1px solid var(--line-l05);
+      }
+      .notification-current {
+        margin-bottom: var(--spacing-s);
+      }
+      .notification-history-title {
+        margin: var(--spacing-m) 0 var(--spacing-xs);
+        font-size: 12px;
+        line-height: 18px;
+        font-weight: 500;
+        color: var(--text-n7);
+      }
+      .notification-history-list {
+        display: grid;
+        gap: var(--spacing-xs);
+      }
+      .notification-history-item {
+        padding: var(--spacing-s);
+        border: 1px solid var(--line-l05);
+        border-radius: var(--radius-ct-s);
+        background: var(--b0-page);
+      }
+      .notification-history-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--spacing-s);
+        margin-bottom: var(--spacing-xxs);
+      }
+      .notification-type {
+        font-size: 12px;
+        line-height: 18px;
+        font-weight: 500;
+        color: var(--text-n9);
+      }
+      .notification-time {
+        flex: 0 0 auto;
+        font-size: 12px;
+        line-height: 18px;
+        color: var(--text-n5);
+      }
+      .notification-empty {
+        padding: var(--spacing-s);
+        border: 1px dashed var(--line-l05);
+        border-radius: var(--radius-ct-s);
+        color: var(--text-n6);
+        font-size: 12px;
+        line-height: 20px;
+      }
+      .notification-helper {
+        margin-bottom: var(--spacing-s);
+        padding: var(--spacing-s);
+        border: 1px solid var(--line-l05);
+        border-radius: var(--radius-ct-s);
+        background: var(--b0-page);
+        color: var(--text-n7);
+        font-size: 12px;
+        line-height: 20px;
+      }
+      .notification-helper[hidden] {
+        display: none;
+      }
+      .notification-helper.is-ok {
+        border-color: rgba(47, 143, 116, 0.36);
+        color: var(--main-m3);
+      }
+      .notification-helper.is-error {
+        border-color: rgba(217, 107, 95, 0.42);
+        color: var(--main-m4);
+      }
       .signal-card {
         transition: border-color 160ms ease, transform 160ms ease;
       }
@@ -700,6 +797,9 @@
         .detail-grid {
           grid-template-columns: 1fr;
         }
+        .notification-title {
+          align-items: flex-start;
+        }
         .evidence-pair,
         .capability-list {
           grid-template-columns: 1fr;
@@ -809,7 +909,11 @@
         </div>
 
         <div class="panel col-6 is-narrow">
-          <div class="section-title"><span class="section-title-text">通知状态</span></div>
+          <div class="section-title notification-title">
+            <span class="section-title-text">通知状态</span>
+            <button class="btn btn-secondary btn-extra-small notification-check-button" id="notificationCheckButton" type="button">发个测试</button>
+          </div>
+          <div class="notification-helper" id="notificationCheckResult" hidden></div>
           <div class="detail-grid" id="alertHistory"></div>
         </div>
 
@@ -833,7 +937,8 @@
         chartSeries: feedPath("chart", "series", "@last/260"),
         signals: feedPath("signals", "events", "@last/1"),
         alerts: feedPath("alerts", "events", "@last/5"),
-        decision: feedPath("alerts", "decision", "@last/1"),
+        decision: feedPath("alerts", "decision", "@last/40"),
+        notify: feedPath("notify", "message", "@last/1"),
         narrative: feedPath("narrative", "brief", "@last/1"),
         capability: feedPath("capability", "status", "@last/1"),
         context: feedPath("context", "events", "@last/30"),
@@ -876,6 +981,56 @@
       }
       function createAlvaClient() {
         return new AlvaToolkit.AlvaClient(createAlvaClientConfig());
+      }
+      function setNotificationCheckResult(message, kind) {
+        const result = document.getElementById("notificationCheckResult");
+        if (!result) return;
+        result.hidden = false;
+        result.classList.remove("is-ok", "is-error");
+        if (kind) result.classList.add(kind);
+        result.textContent = message;
+      }
+      async function sendTestNotification() {
+        if (!window.alva?.udf?.call) {
+          throw new Error("请从 Alva 页面打开并登录后再试。");
+        }
+        const token = window.alva?.udf?.getViewerToken?.();
+        if (!token) {
+          throw new Error("没有拿到 Alva 页面授权，请从 alva.ai 的 Playbook 页面打开后再试。");
+        }
+        try {
+          const response = await window.alva.udf.call("sendTestNotification", {});
+          return response?.result || response;
+        } catch (error) {
+          const message = String(error?.message || "");
+          if (message.includes("Network error while invoking UDF")) {
+            throw new Error("Alva 没能调用测试函数。请确认是在 alva.ai 页面中打开、已登录后再试。");
+          }
+          throw error;
+        }
+      }
+      function setupNotificationCheck() {
+        const button = document.getElementById("notificationCheckButton");
+        if (!button) return;
+        button.onclick = async () => {
+          button.disabled = true;
+          button.textContent = "发送中";
+          try {
+            const result = await sendTestNotification();
+            const message = result?.message || "测试通知已发出。";
+            setNotificationCheckResult(message, "is-ok");
+            try {
+              await init();
+            } catch (refreshError) {
+              setNotificationCheckResult(message + " 页面历史暂未刷新，请稍后手动刷新。", "is-ok");
+            }
+          } catch (error) {
+            setNotificationCheckResult("发送失败：" + (error?.message || "请稍后再试。"), "is-error");
+          } finally {
+            button.disabled = false;
+            button.textContent = "发个测试";
+          }
+        };
       }
       async function readAlfsJson(path) {
         const value = await createAlvaClient().fs.read({ path });
@@ -1463,18 +1618,69 @@
             `</tr>`;
         }).join("") + `</tbody></table></div>`;
       }
-      function renderAlerts(alerts, decision) {
+      function notificationTypeLabel(state) {
+        if (state === "sent") return "正式通知";
+        if (state === "test") return "测试通知";
+        if (state === "setup") return "设置确认";
+        return "未发送";
+      }
+      function notificationCurrentTitle(state) {
+        if (state === "sent") return "正式通知已发出";
+        if (state === "setup") return "设置确认已发出";
+        if (state === "test") return "测试通知已发出";
+        if (state === "watch") return "这次不发通知";
+        return "这次不用通知";
+      }
+      function notificationRule(state) {
+        if (state === "test") {
+          return "这是一条手动测试通知，用来验证通知通路；它不是市场信号，也不代表需要操作。";
+        }
+        if (state === "setup") {
+          return "这是一条设置确认，用来证明通知链路可用；它不是市场信号。";
+        }
+        return "规则：绿色和黄色只在页面展示；只有红色“请立即关注”才会发通知。外部消息是否送达，取决于你的 Alva 通知渠道。";
+      }
+      function sentNotificationRows(decisions) {
+        return decisions
+          .filter((row) => ["sent", "test", "setup"].includes(String(row.notificationState || "")))
+          .sort((a, b) => (rowDateMs(b) || 0) - (rowDateMs(a) || 0))
+          .slice(0, 5);
+      }
+      function renderNotificationHistory(decisions) {
+        const rows = sentNotificationRows(decisions || []);
+        if (!rows.length) {
+          return `<div class="notification-history-title">最近发出的通知</div>` +
+            `<div class="notification-empty">最近没有发出正式通知或测试通知。</div>`;
+        }
+        return `<div class="notification-history-title">最近发出的通知</div>` +
+          `<div class="notification-history-list">` +
+          rows.map((row) => {
+            const state = String(row.notificationState || "");
+            const color = state === "sent" ? "red" : state === "setup" ? "green" : "yellow";
+            const chipLabel = state === "sent" ? row.bigStatusLabel || "请立即关注" : notificationTypeLabel(state);
+            return `<article class="notification-history-item">` +
+              `<div class="notification-history-top">` +
+              `<span class="notification-type">${escapeHtml(notificationTypeLabel(state))}</span>` +
+              `<span class="notification-time">${escapeHtml(fmtDate(row.date || row.asOf))}</span>` +
+              `</div>` +
+              `<div class="signal-top"><span class="signal-symbol">${escapeHtml(row.topSymbol || "PORTFOLIO")}</span>${statusChip(color, chipLabel)}</div>` +
+              `<div class="detail-text">${colorFinancialMoves(row.notificationAudit || row.decisionBody || "")}</div>` +
+              `</article>`;
+          }).join("") + `</div>`;
+      }
+      function renderAlerts(alerts, decision, decisions) {
         if (decision && decision.notificationAudit) {
           const color = normalizedColor(decision.bigStatusColor) || "green";
-          const sent = decision.notificationState === "sent";
-          const title = sent ? "已通知你" : "未通知";
+          const state = String(decision.notificationState || "quiet");
           document.getElementById("alertHistory").innerHTML =
-            `<article class="alert-card">` +
-            `<div class="signal-top"><span class="signal-symbol">PORTFOLIO</span>${statusChip(color, decision.bigStatusLabel || "无需关注")}</div>` +
-            `<div class="signal-title">${escapeHtml(title)}</div>` +
+            `<article class="alert-card notification-current">` +
+            `<div class="signal-top"><span class="signal-symbol">当前状态</span>${statusChip(color, decision.bigStatusLabel || "无需关注")}</div>` +
+            `<div class="signal-title">${escapeHtml(notificationCurrentTitle(state))}</div>` +
             `<div class="detail-text">${colorFinancialMoves(decision.notificationAudit || "")}</div>` +
-            `<div class="metric-caption">当前等级：${escapeHtml(decision.bigStatusLabel || "无需关注")} / ${escapeHtml(fmtDate(decision.asOf))}</div>` +
-            `</article>`;
+            `<div class="metric-caption">当前等级：${escapeHtml(decision.bigStatusLabel || "无需关注")} / 最近运行：${escapeHtml(fmtDate(decision.date || decision.asOf))}</div>` +
+            `<div class="notification-rule metric-caption">${escapeHtml(notificationRule(state))}</div>` +
+            `</article>` +
+            renderNotificationHistory(decisions || [decision]);
           return;
         }
         const sorted = alerts.slice().sort((a, b) => (b.date || 0) - (a.date || 0)).slice(0, 4);
@@ -1484,9 +1690,9 @@
           document.getElementById("alertHistory").innerHTML =
             `<article class="alert-card">` +
             `<div class="signal-top"><span class="signal-symbol">PORTFOLIO</span>${statusChip("green", "无需关注")}</div>` +
-            `<div class="signal-title">没有通知你</div>` +
+            `<div class="signal-title">这次不用通知</div>` +
             `<div class="detail-text">最近 ${quietCount} 次运行没有达到请立即关注级别。</div>` +
-            `<div class="metric-caption">无大事时不会发送心跳通知。</div>` +
+            `<div class="notification-rule metric-caption">规则：绿色和黄色只在页面展示；只有红色“请立即关注”才会发通知。</div>` +
             `</article>`;
           return;
         }
@@ -1536,7 +1742,8 @@
         allSignals = flattenRows(signalRaw);
         allContextEvents = flattenRows(contextRaw);
         const alerts = flattenRows(alertRaw);
-        const decision = last(flattenRows(decisionRaw));
+        const decisionRows = flattenRows(decisionRaw);
+        const decision = last(decisionRows);
         const narrative = last(flattenRows(narrativeRaw));
         if (!summary || !allAssets.length || !allChartRows.length) {
           throw new Error("Feed output is empty");
@@ -1547,7 +1754,7 @@
         renderSummary(summary);
         renderAttentionStatus(summary, decision, allAssets, allSignals, narrative);
         renderSignals(allSignals);
-        renderAlerts(alerts, decision);
+        renderAlerts(alerts, decision, decisionRows);
         renderCapability(last(flattenRows(capabilityRaw)), summary);
         renderControlsAndChart();
         if (window.location.hash) {
@@ -1562,6 +1769,7 @@
           if (trendChart) trendChart.resize();
         });
       });
+      setupNotificationCheck();
       init().catch((error) => {
         const box = document.getElementById("errorBox");
         box.style.display = "block";

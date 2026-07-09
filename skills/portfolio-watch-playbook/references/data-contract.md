@@ -197,12 +197,14 @@ Required fields:
 
 ### `alerts/decision`
 
-One latest human-readable notification decision for the current run. This is
-the primary source for the Playbook's first screen.
+One human-readable notification decision per automation run. The latest row is
+the primary source for the Playbook's first screen and current notification
+status. The Playbook may read recent rows, such as `@last/40`, to show sent
+notification history without calling Alva notification APIs from browser HTML.
 
 Required fields:
 
-- `notificationState` - `quiet`, `watch`, `sent`, or `setup`.
+- `notificationState` - `quiet`, `watch`, `sent`, `setup`, or `test`.
 - `decisionTitle` - plain user-facing conclusion, such as `No ping sent`.
 - `decisionBody` - one or two sentences explaining the decision.
 - `bigStatusColor`, `bigStatusLabel`, `bigStatusBody` - first-screen
@@ -226,6 +228,12 @@ Required fields:
 - `deepLinkAnchor`
 - `cooldownDays`
 
+Rows with `notificationState` of `sent`, `setup`, or `test` represent
+notifications intentionally emitted through the official feed/automation path.
+The UI should label them as `正式通知`, `设置确认`, or `测试通知` and show the row
+`date` as the sent time. Actual channel delivery status is verified with Alva
+`notification-history`, not by browser-side API calls.
+
 ### `notify/message`
 
 Alva push sidecar. Write exactly one row per run.
@@ -236,8 +244,8 @@ Required fields:
 - `body`
 
 When no red event exists and no first-subscription setup
-confirmation was explicitly requested, `body` must contain
-`<|SKIP_NOTIFICATION|>`.
+confirmation or manual delivery test was explicitly requested, `body` must
+contain `<|SKIP_NOTIFICATION|>`.
 
 ### `capability/status`
 

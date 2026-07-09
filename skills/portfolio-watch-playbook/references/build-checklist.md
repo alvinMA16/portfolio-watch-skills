@@ -78,6 +78,15 @@ separate local checkout of the official Alva Skill.
   when negative everywhere they appear.
 - Use one status-chip treatment for `无需关注`, `留意一下`, and `请立即关注` everywhere
   those labels appear.
+- In `通知状态`, include a compact `发个测试` control that calls the registered
+  owner-only `sendTestNotification` UDF. The button must trigger a real manual
+  `testNotification:true` automation run and show a simple sent/failed result.
+  Do not implement it as a latest-message reader or subscribe proposal. Manual
+  tests are delivery-chain tests, while yellow changes stay in the Playbook and
+  only red market changes are eligible for ordinary push.
+- In `通知状态`, show recent sent notification decisions from `alerts/decision`
+  with type and sent time. Include only `sent`, `setup`, and `test` rows in the
+  sent-history list; do not mix quiet/watch rows into "sent" history.
 - The page must not claim news, earnings, analyst revisions, catalysts, or
   thesis drivers are monitored unless the feed actually writes those sourced
   outputs and the current run succeeded. Show unavailable sources in
@@ -97,6 +106,9 @@ separate local checkout of the official Alva Skill.
   or `<|SKIP_NOTIFICATION|>`.
 - Confirm `alerts/decision/@last/1` is fresh and explains the current
   notification decision.
+- Confirm `alerts/decision/@last/40` includes labeled `sent`, `setup`, or `test`
+  rows when notifications have been emitted, and that the Playbook renders their
+  type and sent time.
 - Confirm `capability/status/@last/1` is fresh and states what is wired versus
   not wired.
 - Confirm `context/events/@last/20` is fresh when event context is enabled, or
@@ -114,6 +126,15 @@ separate local checkout of the official Alva Skill.
   - Clear the deployed automation args back to `{}` after the confirmation run.
   - Confirm a later quiet run writes `<|SKIP_NOTIFICATION|>` and does not send
     another setup confirmation.
+- For an explicit manual delivery test, temporarily run the automation with
+  `{"testNotification":true}`, verify notification history shows a labeled
+  test message, then clear args back to `{}` and verify `alva deploy get`
+  reports empty args.
+- Register `assets/templates/send-test-notification-udf-template.js` as
+  `sendTestNotification` after replacing `REPLACE_OWNER_USER_ID` and
+  `REPLACE_CRONJOB_ID`. Confirm `ALVA_API_KEY` exists in Secret Manager,
+  register with `--no-allow-charges`, and smoke test with
+  `alva functions invoke --playbook-id <id> --function-name sendTestNotification --params '{}'`.
 - Verify with:
   - `alva subscriptions list --first 200`
   - `alva notification-history list-playbook --username <owner> --name <playbook> --first 5`

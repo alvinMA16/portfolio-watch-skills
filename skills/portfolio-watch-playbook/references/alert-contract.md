@@ -30,8 +30,15 @@ Each alertable event must include: `signalId`, `symbol`, `severity`, `title`,
 - Write one `notify/message` row per automation run.
 - Write one `alerts/decision` row per automation run.
 - For quiet runs, set `body` to `<|SKIP_NOTIFICATION|>`, unless the run was
-  explicitly triggered as the first-subscription setup confirmation.
+  explicitly triggered as the first-subscription setup confirmation or as a
+  manual delivery test with `testNotification:true`.
 - Never send generic heartbeat alerts.
+- A Playbook UI control must send manual tests through the registered owner-only
+  `sendTestNotification` UDF. The UDF should set automation args to
+  `{"testNotification":true}`, trigger the deployed automation, wait for
+  completion when possible, retry clearing args back to `{}`, and return whether
+  cleanup succeeded. Do not use subscribe proposal, browser-side notification
+  APIs, or a latest-message reader as a send test.
 - Send at most one setup confirmation per Playbook/feed. Do not let ordinary
   test runs consume it. Trigger it only after subscription is active.
 - If several high signals fire, put the highest priority event first and
@@ -67,10 +74,20 @@ Setup confirmation body requirements:
 - State the current decision briefly, such as no material signal right now.
 - Link to the canonical Playbook URL.
 
+Manual test body requirements:
+
+- Say this is a Portfolio Watch test notification.
+- Say it is only verifying the delivery path.
+- Say it is not a market signal and does not imply action on any holding.
+- Link to the canonical Playbook URL.
+
 ## Decision Shape
 
-`alerts/decision` is the Playbook's first-screen source of truth. It should read
-like a concise product conclusion, not a diagnostics record.
+`alerts/decision` is the Playbook's current notification-decision source of
+truth. Write one row per automation run. The latest row powers the first-screen
+answer and current notification status; recent `sent`, `test`, and `setup` rows
+power the in-page "recent notifications sent" history. It should read like a
+concise product conclusion, not a diagnostics record.
 
 Examples:
 
@@ -78,6 +95,7 @@ Examples:
 - Watch: `留意一下。TSLA 有变化值得看看，但还不到需要立刻处理。`
 - Sent: `请立即关注。TSLA 有重大变化，建议现在查看。`
 - Setup: `监控已开启。Portfolio Watch 已开启；这不是市场信号。`
+- Test: `测试通知。已发送一条测试通知；这不是市场信号。`
 
 Use the user's preferred language for `decisionTitle`, `decisionBody`,
 `nextAction`, and `nextTrigger` when memory or the current request makes it
@@ -89,7 +107,8 @@ Use current `alva subscriptions` commands. Do not use deprecated
 alert-subcommand wording from older docs.
 
 1. Add `notify/message` to the feed script, including an explicit one-time
-   setup-confirmation mode such as `env.args.initialConfirmation === true`.
+   setup-confirmation mode such as `env.args.initialConfirmation === true` and
+   an explicit manual test mode such as `env.args.testNotification === true`.
 2. Run the feed and confirm `notify/message/@last/1` is fresh and non-empty, or
    contains `<|SKIP_NOTIFICATION|>` for a quiet run.
    Also confirm `alerts/decision/@last/1` is fresh and explains the current
@@ -109,7 +128,12 @@ alert-subcommand wording from older docs.
    - Clear automation args back to `{}` so later quiet runs stay quiet.
    - If the current run emits a real red market alert instead, count that as
      delivery-chain proof and do not send a separate setup confirmation.
-7. Verify:
+7. For explicit manual delivery tests, temporarily set
+   `{"testNotification":true}`, trigger the deployed automation once, confirm a
+   labeled test notification in notification history, then clear automation args
+   back to `{}`. If cleanup fails, surface that state and fix it before leaving
+   the automation on its schedule.
+8. Verify:
    - `alva subscriptions list --first 200`
    - `alva notification-history list-playbook --username <owner> --name <playbook> --first 5`
    - or `alva notification-history list-feed --username <owner> --name <feed> --first 5`

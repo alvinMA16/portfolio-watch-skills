@@ -1793,16 +1793,49 @@ function quietReasonFor(top, duplicateHigh) {
   return top.reviewColor === "yellow" ? "below_threshold" : "no_signal";
 }
 
-function buildDecision(signals, alertRows, nowMs, latestAsOf, setupConfirmation, bigStatus, portfolioScope) {
+function portfolioSymbolsText() {
+  return CONFIG.portfolio
+    .map((row) => String(row.symbol || "").trim().toUpperCase())
+    .filter(Boolean)
+    .join("、");
+}
+
+function buildDecision(signals, alertRows, nowMs, latestAsOf, setupConfirmation, testNotification, bigStatus, portfolioScope) {
   const thresholds = sensitivityThresholds();
   const top = topReviewSignal(signals);
   const actionable = alertRows.filter((row) => row.severity === "high" && row.deliveryState === "candidate");
   const duplicateHigh = alertRows.find((row) => row.severity === "high" && row.deliveryState === "quiet");
   const anchor = actionable.length
     ? actionable[0].deepLinkAnchor
-    : top
+      : top
       ? top.deepLinkAnchor
       : "signals";
+
+  if (testNotification) {
+    return {
+      date: nowMs,
+      notificationState: "test",
+      decisionTitle: "测试通知",
+      decisionBody: "这是一条通知通路测试，不是市场信号。",
+      bigStatusColor: bigStatus.color,
+      bigStatusLabel: bigStatus.label,
+      bigStatusBody: bigStatus.body,
+      portfolioScope,
+      notificationAudit: "已发送一条测试通知，用来验证 Alva 到你的订阅通道是否能送达；这不是市场信号，不代表需要操作。",
+      topSignalId: top ? top.signalId : "",
+      topSymbol: top ? top.symbol : "PORTFOLIO",
+      topSeverity: top ? top.severity : "quiet",
+      quietReason: "test",
+      nextAction: "无需操作。",
+      nextTrigger: "后续真正通知仍然只在请立即关注级别变化出现时发送。",
+      score: top ? top.score : null,
+      threshold: thresholds.high,
+      portfolioImpactPct: top ? top.portfolioImpactPct : 0,
+      asOf: top ? top.asOf : latestAsOf,
+      deepLinkAnchor: anchor,
+      cooldownDays: CONFIG.duplicateCooldownDays,
+    };
+  }
 
   if (actionable.length) {
     const alert = actionable[0];
@@ -1939,7 +1972,19 @@ function buildDecision(signals, alertRows, nowMs, latestAsOf, setupConfirmation,
   };
 }
 
-function buildNotify(alertRows, decision, setupConfirmation) {
+function buildNotify(alertRows, decision, setupConfirmation, testNotification) {
+  if (testNotification) {
+    const url = CONFIG.playbookUrl && CONFIG.playbookUrl.indexOf("REPLACE_") < 0
+      ? CONFIG.playbookUrl
+      : "";
+    return {
+      title: "Portfolio Watch 测试通知",
+      body:
+        "这是一条 Portfolio Watch 测试通知，用来确认 Alva 到你的订阅通道是否能送达。\n\n" +
+        "这不是市场信号，也不代表 " + portfolioSymbolsText() + " 需要操作。\n\n" +
+        (url ? "[打开 Playbook](" + url + ")" : "打开 Playbook 查看当前状态。"),
+    };
+  }
   const actionable = alertRows.filter((row) => row.severity === "high" && row.deliveryState === "candidate");
   if (!actionable.length) {
     if (setupConfirmation) {
@@ -2094,13 +2139,15 @@ function buildCapabilityRecord(symbolData, nowMs) {
     const priorAlerts = await loadPriorAlerts(ctx);
     const alertRows = buildAlertRows(signalRecords, nowMs, latestAsOf, priorAlerts);
     const runArgs = env.args || {};
+    const testNotification = runArgs.testNotification === true || runArgs.notificationTest === true;
     const setupConfirmationAlreadySent = await ctx.kv.load("initialSubscriptionConfirmationSent");
     const setupConfirmation =
       CONFIG.initialSubscriptionConfirmation &&
       runArgs.initialConfirmation === true &&
+      !testNotification &&
       !setupConfirmationAlreadySent;
-    const decision = buildDecision(signalRecords, alertRows, nowMs, latestAsOf, setupConfirmation, bigStatus, portfolioScope);
-    const notify = buildNotify(alertRows, decision, setupConfirmation);
+    const decision = buildDecision(signalRecords, alertRows, nowMs, latestAsOf, setupConfirmation, testNotification, bigStatus, portfolioScope);
+    const notify = buildNotify(alertRows, decision, setupConfirmation, testNotification);
     notifyState = notify.body === "<|SKIP_NOTIFICATION|>" ? "quiet" : "message";
     setupConfirmationState = setupConfirmation ? "sent_or_replaced_by_market_alert" : setupConfirmationAlreadySent ? "already_sent" : "not_requested";
     alertCandidateCount = alertRows.filter((row) => row.deliveryState === "candidate").length;
@@ -2134,6 +2181,7 @@ function buildCapabilityRecord(symbolData, nowMs) {
     narrative: narrativeRecord.modelStatus,
     notify: notifyState,
     setupConfirmation: setupConfirmationState,
+    testNotification: notifyState === "message" && ((env.args || {}).testNotification === true || (env.args || {}).notificationTest === true) ? "sent" : "not_requested",
     asOf: latestAsOf,
   };
 })();

@@ -77,18 +77,38 @@ range. Make the next section visible below the fold when possible.
 
 Show `alerts/decision` after `证据明细`, not before it:
 
-- Notification state: `quiet`, `watch`, `sent`, or `setup`.
+- Notification state: `quiet`, `watch`, `sent`, `setup`, or `test`.
 - Human conclusion, such as `无需关注`, `留意一下`, or `请立即关注`.
 - Reason in one or two evidence-backed sentences.
 - Next action, such as `No action needed` or `Open GOOGL detail`.
 - Link target matching `deepLinkAnchor` when a signal exists.
+- A compact "最近发出的通知" history from recent `alerts/decision` rows with
+  state `sent`, `setup`, or `test`. Each row must show type (`正式通知`,
+  `设置确认`, or `测试通知`) and sent time. Do not query Alva notification-history
+  from browser HTML; use that official surface only in build verification.
+
+Place a compact right-aligned `发个测试` button in the section title. The button
+must call the registered owner-only `sendTestNotification` UDF, which triggers a
+real `testNotification:true` automation run, retries clearing cronjob args back
+to `{}`, and returns a sent/failed result. Do not implement this button as a
+latest-message reader. Do not wire raw subscription or notification APIs from
+HTML, and do not use `window.alva.subscribe.propose()`; that API is only for
+turning on alerts and can trigger parent-frame subscription flows. If the UDF is
+unavailable or sending fails, show a clear inline error instead of throwing a
+console error. If the Playbook is opened outside the Alva parent page or lacks a
+PBSV token, say to open it from the canonical Alva Playbook page.
 
 When state is `setup`, make clear that the user received a one-time
 subscription confirmation and that no market signal is being claimed.
+When state is `test`, make clear that a manual delivery test was sent and that
+no market signal is being claimed.
 
 Do not make the user infer notification behavior from score, severity,
 thresholds, or repeated quiet rows. Also do not imply that "留意一下" always
-means "worth alerting."
+means "worth alerting." Every notification-status card should include the rule
+in plain language: green/yellow changes stay in the Playbook; only red
+`请立即关注` changes are eligible for push, and external IM delivery also depends
+on the user's Alva notification channel.
 
 ## 证据明细
 
