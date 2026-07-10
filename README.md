@@ -92,27 +92,24 @@ for other installation options.
 
 ## Use it
 
-After installation, open Codex or Claude Code from the target project and use
-the Skill explicitly with `$portfolio-watch-playbook`, or describe a matching
-monitoring request in natural language.
+After installation, open Codex or Claude Code from the target project and
+describe the monitoring request naturally. The Skill will match the request.
 
 ### Basic example
 
 ```text
-Use $portfolio-watch-playbook to keep an eye on NVDA, TSLA, and AAPL.
-Ping me only when something material happens.
+Keep an eye on my NVDA, TSLA, and AAPL. Ping me when something big happens.
 ```
 
 ### Another English example
 
 ```text
-Use $portfolio-watch-playbook to watch MSFT, AMZN, and GOOGL.
-Let me know when there is something worth looking at.
+Watch my MSFT, AMZN, and GOOGL portfolio. Let me know only about meaningful
+moves.
 ```
 
 ### Chinese example
 
 ```text
-使用 $portfolio-watch-playbook 盯住我的 NVDA、TSLA 和 AAPL。
-只有出现重要变化时才提醒我。
+帮我盯住我的 META、NFLX 和 AMD；出现重大变化时提醒我。
 ```
